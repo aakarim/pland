@@ -1,0 +1,37 @@
+"""
+Maps a Time GraphQL scalar to a Go Time struct.
+"""
+scalar Time
+scalar UUID
+
+# Non-default Input for creating Plans
+input CreatePlanCLIInput {
+  txt: String!
+  date: Time!
+  timestamp: Time
+}
+
+type FYP {
+  edges: [PlanEdge]
+  pageInfo: PageInfo!
+}
+
+extend type Query {
+  user(name: String!): User
+  me: User
+  """ 'For You' Page """
+  fyp(
+    """Returns the elements in the list that come after the specified cursor."""
+    after: Cursor
+
+    """Returns the first _n_ elements from the list."""
+    first: Int
+
+    """Returns the elements in the list that come before the specified cursor."""
+    before: Cursor
+  ): FYP!
+}
+
+type Mutation {
+  createPlan(input: CreatePlanCLIInput!): Plan!
+}

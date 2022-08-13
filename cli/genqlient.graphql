@@ -1,0 +1,9 @@
+mutation CreatePlan($txt: String!, $date: Time!) {
+  createPlan(input: { txt: $txt, date: $date }) {
+    id
+    txt
+    digest
+    date
+    timestamp
+  }
+}

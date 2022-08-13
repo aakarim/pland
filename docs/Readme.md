@@ -1,0 +1,2 @@
+# Docs
+This is where all the documentation for the product goes. In general docs are not specified, only in certain situations where the user is likely to want to see the documentation on a device that is not set up with the Plan CLI.

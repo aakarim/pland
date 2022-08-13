@@ -2,18 +2,15 @@ package sync
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
@@ -21,17 +18,12 @@ import (
 	"github.com/aakarim/pland/cli/internal/generated"
 	"github.com/aakarim/pland/cli/internal/graphclient"
 	"github.com/aakarim/pland/cli/internal/store"
-	"github.com/cespare/xxhash"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm/client"
-	"github.com/charmbracelet/charm/kv"
-	"github.com/dgraph-io/badger/v3"
 )
 
 type PlanDay string
-
-type planStore map[PlanDay]DayPlan
 
 type DayPlan struct {
 	Plans []Plan `json:"plans"`
@@ -59,31 +51,11 @@ func (m model) sync() tea.Msg {
 	}
 	planPath := path.Join(home, ".goplan")
 
-	// Open a database (or create one if it doesn’t exist)
-	db, err := kv.OpenWithDefaults("goplan")
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	// Fetch updates and easily define your own syncing strategy
-	if err := db.Sync(); err != nil {
-		return err
-	}
-
-	// load all entries
-	var dirtyStore bool
-	allB, err := db.Get([]byte("plans"))
-	if err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
-		return err
-	}
-	ps := planStore{}
-	if !errors.Is(err, badger.ErrKeyNotFound) {
-		if err := json.Unmarshal(allB, &ps); err != nil {
-			return err
+	// create goplan path
+	if _, err := os.Open(planPath); err != nil && errors.Is(err, os.ErrNotExist) {
+		if err := os.Mkdir(planPath, os.ModeAppend); err != nil {
+			return fmt.Errorf("os.Mkdir(%s): %w", planPath, err)
 		}
-	} else {
-		dirtyStore = true
 	}
 
 	var todaysPlan *Plan
@@ -98,42 +70,63 @@ func (m model) sync() tea.Msg {
 	if errors.Is(err, os.ErrNotExist) {
 		return freshPlan{path: homePlanPath}
 	}
+	homePlan.Close()
+
+	// get latest plan
+	c, err := client.NewClientWithDefaults()
+	if err != nil {
+		return actions.AuthError{Err: err}
+	}
+	j, err := c.JWT("charm")
+	if err != nil {
+		return err
+	}
+	u, err := url.Parse(fmt.Sprintf("%s://%s:%d%s", m.cfg.Server.HttpScheme, m.cfg.Server.Host, m.cfg.Server.GraphQLPort, m.cfg.Server.GraphQLPath))
+	if err != nil {
+		return err
+	}
+	httpClient := &http.Client{
+		Transport: graphclient.NewAuthedTransport(j, http.DefaultTransport),
+	}
+	gqlClient := graphql.NewClient(u.String(), httpClient)
+	latestPlanResp, err := generated.GetLatestPlan(context.Background(), gqlClient)
+	if err != nil {
+		return err
+	}
 
 	// copy to database producing
 	var currentPlanPath string
-	if homePlan != nil {
-		currentPlanPath, err = copyPlanToDir(planPath, homePlanPath)
-		if err != nil {
-			return fmt.Errorf("copyPlanToDir(%s, %s): %w", planPath, homePlanPath, err)
-		}
-		// open new plan
-		todaysPlan, err = planFromPath(currentPlanPath)
-		if err != nil {
-			return fmt.Errorf("planFromPath(%s): %w", currentPlanPath, err)
-		}
+	currentPlanPath, err = copyPlanToDir(planPath, homePlanPath)
+	if err != nil {
+		return fmt.Errorf("copyPlanToDir(%s, %s): %w", planPath, homePlanPath, err)
+	}
+	// open new plan
+	todaysPlan, err = planFromPath(currentPlanPath)
+	if err != nil {
+		return fmt.Errorf("planFromPath(%s): %w", currentPlanPath, err)
 	}
 	// publish the current plan
 	if todaysPlan != nil {
-		c, err := client.NewClientWithDefaults()
-		if err != nil {
-			return actions.AuthError{Err: err}
-		}
-		j, err := c.JWT("charm")
-		if err != nil {
-			return err
-		}
-		u, err := url.Parse(fmt.Sprintf("%s://%s:%d%s", m.cfg.Server.HttpScheme, m.cfg.Server.Host, m.cfg.Server.GraphQLPort, m.cfg.Server.GraphQLPath))
-		if err != nil {
-			return err
-		}
 		httpClient := &http.Client{
 			Transport: graphclient.NewAuthedTransport(j, http.DefaultTransport),
 		}
 		gqlClient := graphql.NewClient(u.String(), httpClient)
 		resp, err := generated.CreatePlan(context.Background(), gqlClient, todaysPlan.Txt, todaysPlan.Date)
-		fmt.Println(resp, err)
 		if err != nil {
 			return fmt.Errorf("error creating: %w", err)
+		}
+		// if the created plan is older than the latest plan then overwrite local plan file
+		if latestPlanResp.Me.Plan.Timestamp.After(resp.CreatePlan.Timestamp) {
+			fmt.Println("local file is old, replacing with server version...")
+			overwriteF, err := os.Create(homePlanPath)
+			if err != nil {
+				return err
+			}
+			if _, err := overwriteF.Write([]byte(latestPlanResp.Me.Plan.Txt)); err != nil {
+				overwriteF.Close()
+				return fmt.Errorf("file.Write(%s): %w", homePlanPath, err)
+			}
+			overwriteF.Close()
 		}
 		fmt.Println("synced", resp.CreatePlan.Id)
 	}
@@ -153,81 +146,7 @@ func (m model) sync() tea.Msg {
 		}
 		f.Close()
 	}
-
-	// update managed store
-	if err := filepath.WalkDir(planPath, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		extension := filepath.Ext(path)
-		dir := filepath.Dir(path)
-		if extension == ".txt" || extension == ".plan" {
-			// get date from filename
-			base := filepath.Base(path)
-			// rename todo to include date
-			p := path
-			if base == "todo.txt" || base == ".plan" {
-				newPath, err := copyPlanToDir(dir, p)
-				if err != nil {
-					return fmt.Errorf("copyPlanToDir(%s, %s): %w", dir, p, err)
-				}
-				p = newPath
-				dirtyStore = true
-			}
-			fileDate := PlanDay(strings.TrimPrefix(strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)), "plan-"))
-			f, err := os.Open(p)
-			defer f.Close()
-			if err != nil {
-				return err
-			}
-			b, err := io.ReadAll(f)
-			if err != nil {
-				return err
-			}
-			currentTxt := string(b)
-			// get existing one from store
-			var foundDate DayPlan
-			for date, v := range ps {
-				if date == fileDate {
-					foundDate = v
-				}
-			}
-			// get the most recent timestamp (that allows us to undo and save)
-			var mostRecent Plan
-			for _, pd := range foundDate.Plans {
-				if pd.TS > mostRecent.TS {
-					mostRecent = pd
-				}
-			}
-			sum := xxhash.Sum64String(currentTxt)
-			if sum != mostRecent.Hash {
-				currentP := Plan{
-					TS:   rightNow.Unix(),
-					Hash: sum,
-					Txt:  currentTxt,
-				}
-				foundDate.Plans = append(foundDate.Plans, currentP)
-				ps[fileDate] = foundDate
-				dirtyStore = true
-			}
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	if dirtyStore {
-		jsonB, err := json.Marshal(ps)
-		if err != nil {
-			return err
-		}
-		if err := db.Set([]byte("plans"), jsonB); err != nil {
-			return err
-		}
-	}
-	return syncCompleted{
-		store: ps,
-	}
+	return syncCompleted{}
 }
 
 // copyPlanToDir copies the plan to the managed directory and gives it a suffix.

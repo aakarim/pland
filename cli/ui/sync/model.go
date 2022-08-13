@@ -35,7 +35,6 @@ type model struct {
 	syncStatus  int
 	spinner     spinner.Model
 	status      int
-	ps          planStore
 	planPath    string
 	planService *plan.PlanService
 	cfg         *config.Config
@@ -61,7 +60,6 @@ func (m model) Init() tea.Cmd {
 
 type userUpdated struct{}
 type syncCompleted struct {
-	store planStore
 }
 
 type freshPlan struct{ path string }
@@ -107,7 +105,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.sync
 	case syncCompleted:
 		m.syncStatus = SyncCompleted
-		m.ps = msg.store
 		return m, tea.Quit
 	}
 	return m, cmd

@@ -19,7 +19,6 @@ import (
 )
 
 func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePlanCLIInput) (*ent.Plan, error) {
-	fmt.Println("CreatePlan")
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, ErrAccessDenied
@@ -75,7 +74,14 @@ func (r *queryResolver) Fyp(ctx context.Context, after *ent.Cursor, first *int, 
 }
 
 func (r *userResolver) Plan(ctx context.Context, obj *ent.User) (*ent.Plan, error) {
-	panic(fmt.Errorf("not implemented"))
+	plans, err := obj.QueryPlans().Order(ent.Desc(plan.FieldDate), ent.Desc(plan.FieldTimestamp)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(plans) == 0 {
+		return nil, nil
+	}
+	return plans[0], nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -74,6 +74,10 @@ func (r *queryResolver) Fyp(ctx context.Context, after *ent.Cursor, first *int, 
 	return &model.Fyp{}, nil
 }
 
+func (r *userResolver) Plan(ctx context.Context, obj *ent.User) (*ent.Plan, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 

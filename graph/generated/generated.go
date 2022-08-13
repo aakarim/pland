@@ -100,6 +100,7 @@ type ComplexityRoot struct {
 		Email     func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Name      func(childComplexity int) int
+		Plan      func(childComplexity int) int
 		Plans     func(childComplexity int, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.PlanOrder, where *ent.PlanWhereInput) int
 	}
 }
@@ -116,6 +117,8 @@ type QueryResolver interface {
 }
 type UserResolver interface {
 	CharmID(ctx context.Context, obj *ent.User) (string, error)
+
+	Plan(ctx context.Context, obj *ent.User) (*ent.Plan, error)
 }
 
 type UserWhereInputResolver interface {
@@ -378,6 +381,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Name(childComplexity), true
+
+	case "User.plan":
+		if e.complexity.User.Plan == nil {
+			break
+		}
+
+		return e.complexity.User.Plan(childComplexity), true
 
 	case "User.plans":
 		if e.complexity.User.Plans == nil {
@@ -766,7 +776,12 @@ input UserWhereInput {
   hasPlansWith: [PlanWhereInput!]
 }
 `, BuiltIn: false},
-	{Name: "graph/schema.graphqls", Input: `"""
+	{Name: "graph/schema.graphqls", Input: `extend type User {
+  """ The most recent plan for this user """
+  plan: Plan
+}
+
+"""
 Maps a Time GraphQL scalar to a Go Time struct.
 """
 scalar Time
@@ -1673,6 +1688,8 @@ func (ec *executionContext) fieldContext_Plan_author(ctx context.Context, field 
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "plans":
 				return ec.fieldContext_User_plans(ctx, field)
+			case "plan":
+				return ec.fieldContext_User_plan(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -2083,6 +2100,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "plans":
 				return ec.fieldContext_User_plans(ctx, field)
+			case "plan":
+				return ec.fieldContext_User_plan(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -2151,6 +2170,8 @@ func (ec *executionContext) fieldContext_Query_me(ctx context.Context, field gra
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "plans":
 				return ec.fieldContext_User_plans(ctx, field)
+			case "plan":
+				return ec.fieldContext_User_plan(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -2659,6 +2680,63 @@ func (ec *executionContext) fieldContext_User_plans(ctx context.Context, field g
 	if fc.Args, err = ec.field_User_plans_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_plan(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_plan(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Plan(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Plan)
+	fc.Result = res
+	return ec.marshalOPlan2ᚖgithubᚗcomᚋaakarimᚋplandᚋentᚐPlan(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_plan(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Plan_id(ctx, field)
+			case "date":
+				return ec.fieldContext_Plan_date(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Plan_createdAt(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_Plan_timestamp(ctx, field)
+			case "digest":
+				return ec.fieldContext_Plan_digest(ctx, field)
+			case "txt":
+				return ec.fieldContext_Plan_txt(ctx, field)
+			case "author":
+				return ec.fieldContext_Plan_author(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Plan", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -6292,6 +6370,23 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "plan":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_plan(ctx, field, obj)
 				return res
 			}
 

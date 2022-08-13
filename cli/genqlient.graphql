@@ -7,3 +7,15 @@ mutation CreatePlan($txt: String!, $date: Time!) {
     timestamp
   }
 }
+
+query GetLatestPlan {
+  me {
+    plan {
+      id
+      txt
+      digest
+      date
+      timestamp
+    }
+  }
+}

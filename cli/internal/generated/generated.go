@@ -41,6 +41,47 @@ type CreatePlanResponse struct {
 // GetCreatePlan returns CreatePlanResponse.CreatePlan, and is useful for accessing the field via an interface.
 func (v *CreatePlanResponse) GetCreatePlan() CreatePlanCreatePlan { return v.CreatePlan }
 
+// GetLatestPlanMeUser includes the requested fields of the GraphQL type User.
+type GetLatestPlanMeUser struct {
+	// The most recent plan for this user
+	Plan GetLatestPlanMeUserPlan `json:"plan"`
+}
+
+// GetPlan returns GetLatestPlanMeUser.Plan, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanMeUser) GetPlan() GetLatestPlanMeUserPlan { return v.Plan }
+
+// GetLatestPlanMeUserPlan includes the requested fields of the GraphQL type Plan.
+type GetLatestPlanMeUserPlan struct {
+	Id        string    `json:"id"`
+	Txt       string    `json:"txt"`
+	Digest    string    `json:"digest"`
+	Date      time.Time `json:"date"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// GetId returns GetLatestPlanMeUserPlan.Id, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanMeUserPlan) GetId() string { return v.Id }
+
+// GetTxt returns GetLatestPlanMeUserPlan.Txt, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanMeUserPlan) GetTxt() string { return v.Txt }
+
+// GetDigest returns GetLatestPlanMeUserPlan.Digest, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanMeUserPlan) GetDigest() string { return v.Digest }
+
+// GetDate returns GetLatestPlanMeUserPlan.Date, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanMeUserPlan) GetDate() time.Time { return v.Date }
+
+// GetTimestamp returns GetLatestPlanMeUserPlan.Timestamp, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanMeUserPlan) GetTimestamp() time.Time { return v.Timestamp }
+
+// GetLatestPlanResponse is returned by GetLatestPlan on success.
+type GetLatestPlanResponse struct {
+	Me GetLatestPlanMeUser `json:"me"`
+}
+
+// GetMe returns GetLatestPlanResponse.Me, and is useful for accessing the field via an interface.
+func (v *GetLatestPlanResponse) GetMe() GetLatestPlanMeUser { return v.Me }
+
 // __CreatePlanInput is used internally by genqlient
 type __CreatePlanInput struct {
 	Txt  string    `json:"txt"`
@@ -80,6 +121,40 @@ mutation CreatePlan ($txt: String!, $date: Time!) {
 	var err error
 
 	var data CreatePlanResponse
+	resp := &graphql.Response{Data: &data}
+
+	err = client.MakeRequest(
+		ctx,
+		req,
+		resp,
+	)
+
+	return &data, err
+}
+
+func GetLatestPlan(
+	ctx context.Context,
+	client graphql.Client,
+) (*GetLatestPlanResponse, error) {
+	req := &graphql.Request{
+		OpName: "GetLatestPlan",
+		Query: `
+query GetLatestPlan {
+	me {
+		plan {
+			id
+			txt
+			digest
+			date
+			timestamp
+		}
+	}
+}
+`,
+	}
+	var err error
+
+	var data GetLatestPlanResponse
 	resp := &graphql.Response{Data: &data}
 
 	err = client.MakeRequest(

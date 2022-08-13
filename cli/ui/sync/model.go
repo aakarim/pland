@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aakarim/pland/cli/internal/actions"
+	"github.com/aakarim/pland/cli/internal/plan"
 	ourCommon "github.com/aakarim/pland/cli/ui/common"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -23,25 +24,28 @@ var (
 const (
 	statusInit              = iota
 	statusFinishedWithClean = iota
+	statusFinishedWithCopy  = iota
 )
 
 type model struct {
 	ourCommon.Model
-	hasUser    bool
-	userName   string
-	syncStatus int
-	spinner    spinner.Model
-	status     int
-	ps         planStore
-	planPath   string
+	hasUser     bool
+	userName    string
+	syncStatus  int
+	spinner     spinner.Model
+	status      int
+	ps          planStore
+	planPath    string
+	planService *plan.PlanService
 }
 
-func InitialModel() model {
-	return model{hasUser: true, spinner: common.NewSpinner()}
+func InitialModel(planService *plan.PlanService) model {
+	return model{hasUser: true, spinner: common.NewSpinner(), planService: planService}
 }
 
 const (
-	SyncPending    = iota + 1
+	_              = iota
+	SyncPending    = iota
 	SyncInProgress = iota
 	SyncCompleted  = iota
 )
@@ -59,6 +63,10 @@ type syncCompleted struct {
 }
 
 type freshPlan struct{ path string }
+type freshPlanCreated struct {
+	path   string
+	status int
+}
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	authM, authMsg := actions.UpdateAuth(m, msg)
@@ -84,9 +92,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.hasUser = true
 		return m, syncExec()
 	case freshPlan:
-		m.status = statusFinishedWithClean
 		m.planPath = msg.path
-		return m, nil
+		return m, m.fresh
+	case freshPlanCreated:
+		m.status = msg.status
+		return m, tea.Quit
 	case actions.UserFound:
 		m.hasUser = true
 		m.userName = msg.Name
@@ -111,6 +121,9 @@ func (m model) View() string {
 	}
 	if m.status == statusFinishedWithClean {
 		str += paragraph(fmt.Sprintf("plan file created at %s. Add your plan for the day there and re-run `plan` to publish.", ourCommon.Code(m.planPath)))
+	}
+	if m.status == statusFinishedWithCopy {
+		str += paragraph(fmt.Sprintf("plan file copied from store to %s.", ourCommon.Code(m.planPath)))
 	}
 	if m.syncStatus == SyncInProgress {
 		str += paragraph(fmt.Sprintf("\n\nsyncing...\n\n"))

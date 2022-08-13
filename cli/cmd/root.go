@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/aakarim/pland/cli/internal/config"
+	"github.com/aakarim/pland/cli/internal/plan"
 	"github.com/aakarim/pland/cli/ui/sync"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -24,7 +28,18 @@ var rootCmd = &cobra.Command{
 		if plainRender {
 			opts = append(opts, tea.WithoutRenderer())
 		}
-		return tea.NewProgram(sync.InitialModel(), opts...).Start()
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("UserHomeDir(): %w", err)
+		}
+		cfg := config.NewConfig(config.SetServer(config.ServerConfig{
+			Host:        "localhost",
+			GraphQLPort: 8080,
+			GraphQLPath: "/query",
+			HttpScheme:  "http",
+		}))
+		cfg.ManagedPath = filepath.Join(homeDir, ".goplan/")
+		return tea.NewProgram(sync.InitialModel(plan.NewPlanService(cfg)), opts...).Start()
 	},
 }
 

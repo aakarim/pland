@@ -1,3 +1,8 @@
+extend type User {
+  """ The most recent plan for this user """
+  plan: Plan
+}
+
 """
 Maps a Time GraphQL scalar to a Go Time struct.
 """

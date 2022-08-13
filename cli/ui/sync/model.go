@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aakarim/pland/cli/internal/actions"
+	"github.com/aakarim/pland/cli/internal/config"
 	"github.com/aakarim/pland/cli/internal/plan"
 	ourCommon "github.com/aakarim/pland/cli/ui/common"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -37,10 +38,11 @@ type model struct {
 	ps          planStore
 	planPath    string
 	planService *plan.PlanService
+	cfg         *config.Config
 }
 
-func InitialModel(planService *plan.PlanService) model {
-	return model{hasUser: true, spinner: common.NewSpinner(), planService: planService}
+func InitialModel(planService *plan.PlanService, cfg *config.Config) model {
+	return model{hasUser: true, spinner: common.NewSpinner(), planService: planService, cfg: cfg}
 }
 
 const (
@@ -86,11 +88,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case errMsg:
 		m.Err = msg
+		fmt.Println("rendering error")
 		return m, tea.Quit
 
 	case userUpdated:
 		m.hasUser = true
-		return m, syncExec()
+		return m, m.sync
 	case freshPlan:
 		m.planPath = msg.path
 		return m, m.fresh
@@ -101,7 +104,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.hasUser = true
 		m.userName = msg.Name
 		m.syncStatus = SyncInProgress
-		return m, syncExec()
+		return m, m.sync
 	case syncCompleted:
 		m.syncStatus = SyncCompleted
 		m.ps = msg.store
@@ -113,7 +116,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.Err != nil {
-		return styles.Error.Render(m.Err.Error())
+		fmt.Println(m.Err)
+		return styles.Error.Render(m.Err.Error()) + "\n"
 	}
 	var str string
 	if m.userName != "" {

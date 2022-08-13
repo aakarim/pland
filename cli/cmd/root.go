@@ -33,13 +33,13 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("UserHomeDir(): %w", err)
 		}
 		cfg := config.NewConfig(config.SetServer(config.ServerConfig{
-			Host:        "localhost",
+			Host:        os.Getenv("CHARM_HOST"),
 			GraphQLPort: 8080,
 			GraphQLPath: "/query",
 			HttpScheme:  "http",
 		}))
 		cfg.ManagedPath = filepath.Join(homeDir, ".goplan/")
-		return tea.NewProgram(sync.InitialModel(plan.NewPlanService(cfg)), opts...).Start()
+		return tea.NewProgram(sync.InitialModel(plan.NewPlanService(cfg), cfg), opts...).Start()
 	},
 }
 

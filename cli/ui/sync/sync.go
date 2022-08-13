@@ -44,11 +44,6 @@ type Plan struct {
 	Date time.Time `json:"date"`
 }
 
-func syncExec() tea.Cmd {
-	return func() tea.Msg {
-		return sync()
-	}
-}
 func printFormatted(s ...string) {
 	for _, ss := range s {
 		fmt.Printf(paragraph(ss))
@@ -56,7 +51,7 @@ func printFormatted(s ...string) {
 	fmt.Println()
 }
 
-func sync() tea.Msg {
+func (m model) sync() tea.Msg {
 	rightNow := time.Now()
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -117,7 +112,6 @@ func sync() tea.Msg {
 			return fmt.Errorf("planFromPath(%s): %w", currentPlanPath, err)
 		}
 	}
-
 	// publish the current plan
 	if todaysPlan != nil {
 		c, err := client.NewClientWithDefaults()
@@ -128,7 +122,7 @@ func sync() tea.Msg {
 		if err != nil {
 			return err
 		}
-		u, err := url.Parse("http://localhost:8080/query")
+		u, err := url.Parse(fmt.Sprintf("%s://%s:%d%s", m.cfg.Server.HttpScheme, m.cfg.Server.Host, m.cfg.Server.GraphQLPort, m.cfg.Server.GraphQLPath))
 		if err != nil {
 			return err
 		}
@@ -137,6 +131,7 @@ func sync() tea.Msg {
 		}
 		gqlClient := graphql.NewClient(u.String(), httpClient)
 		resp, err := generated.CreatePlan(context.Background(), gqlClient, todaysPlan.Txt, todaysPlan.Date)
+		fmt.Println(resp, err)
 		if err != nil {
 			return fmt.Errorf("error creating: %w", err)
 		}

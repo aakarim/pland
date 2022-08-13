@@ -1,0 +1,16 @@
+{
+    "configurations": [
+    {
+        "name": "CLI Sync",
+        "type": "go",
+        "request": "launch",
+        "mode": "auto",
+        "program": "${workspaceRoot}/cli",
+        // "args": ["-d"],
+        "env": {
+            "CHARM_HOST": "mini.home"
+        },
+        "console": "integratedTerminal"
+    }
+    ]
+}

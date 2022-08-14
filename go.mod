@@ -3,7 +3,6 @@ module github.com/aakarim/pland
 go 1.18
 
 require (
-	entgo.io/contrib v0.3.0
 	entgo.io/ent v0.11.1
 	github.com/99designs/gqlgen v0.17.5-0.20220428154617-9250f9ac1f90
 	github.com/Khan/genqlient v0.5.0
@@ -45,6 +44,7 @@ require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -55,6 +55,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115 // indirect
+	github.com/kardianos/service v1.2.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/matryer/moq v0.2.7 // indirect
@@ -87,7 +88,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.10 // indirect

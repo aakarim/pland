@@ -7,5 +7,11 @@ import (
 )
 
 func Install() error {
-	return sh.Run("go", "install", "./cli/plan.go")
+	if err := sh.Run("go", "install", "./cli/plan.go"); err != nil {
+		return err
+	}
+	if err := sh.Run("go", "install", "-ldflags", "-s -w", "./pland/pland.go"); err != nil {
+		return err
+	}
+	return nil
 }

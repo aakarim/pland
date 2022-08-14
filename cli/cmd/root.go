@@ -14,6 +14,7 @@ import (
 
 var plainRender bool
 
+var host = os.Getenv("CHARM_HOST")
 var parentName = "plan"
 
 // rootCmd represents the base command when called without any subcommands
@@ -33,7 +34,7 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("UserHomeDir(): %w", err)
 		}
 		cfg := config.NewConfig(config.SetServer(config.ServerConfig{
-			Host:        os.Getenv("CHARM_HOST"),
+			Host:        host,
 			GraphQLPort: 8080,
 			GraphQLPath: "/query",
 			HttpScheme:  "http",

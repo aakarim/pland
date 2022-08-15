@@ -17,4 +17,5 @@ var (
 	Keyword   = Styles.Keyword.Render
 	Code      = Styles.Code.Render
 	Subtle    = Styles.Subtle.Render
+	View      = Styles.App.Width(100)
 )

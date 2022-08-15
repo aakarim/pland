@@ -18,6 +18,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/magefile/mage v1.13.0
 	github.com/muesli/reflow v0.3.0
+	github.com/sergi/go-diff v1.1.0
 	github.com/spf13/cobra v1.5.0
 	github.com/vektah/gqlparser/v2 v2.4.5
 	github.com/vmihailenco/msgpack/v5 v5.0.0-beta.9

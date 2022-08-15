@@ -3,9 +3,12 @@ package plan
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/aakarim/pland/cli/internal/config"
@@ -27,6 +30,97 @@ const (
 	StatusFinishedWithClean = iota
 	StatusFinishedWithCopy  = iota
 )
+
+func (p *PlanService) Fresh() error {
+	// load the existing plan file
+	homePlan, err := p.GetLocalPlan()
+	if err != nil {
+		return err
+	}
+	defer homePlan.Close()
+	planB, err := io.ReadAll(homePlan)
+	if err != nil {
+		return fmt.Errorf("io.ReadAll(): %w", err)
+	}
+	homePlan.Close()
+	planFileStr := string(planB)
+	// validate
+	if err := Validate(planFileStr); err != nil {
+		return err
+	}
+	// parse
+	pl, err := Parse(context.Background(), planFileStr)
+	if err != nil {
+		return fmt.Errorf("Parse(): %w", err)
+	}
+
+	// add fun header
+	if pl.Header.Contents == "" {
+		pl.Header.Contents = "			🕴🏼			"
+	}
+
+	beginningOfDay := time.Now().Truncate(24 * time.Hour)
+
+	newEntry := Day{
+		Contents: `- [x] run ` + "`plan fresh`" + "\n" + `- [ ] update todos`,
+		Date:     beginningOfDay,
+	}
+	// get most recent date
+	if len(pl.Days) > 0 {
+		latestDate := pl.Days[0].Date
+		if latestDate.After(beginningOfDay) || latestDate.Equal(beginningOfDay) {
+			return fmt.Errorf("latest date in plan is %v, this is at the same time or after the current day so there's no need to run `fresh`. If you've flown to another timezone please take a nap.", latestDate)
+		}
+	}
+
+	// add a new entry at the beginning of the list
+	pl.Days = append([]Day{newEntry}, pl.Days...)
+	if err := p.OverwriteLocalPlan(pl); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PlanService) OverwriteLocalPlan(pl *PlanFile) error {
+	// overwrite file with new version
+	homePlanPath, err := p.GetLocalPlanPath()
+	if err != nil {
+		return err
+	}
+
+	newPlan, err := os.Create(homePlanPath)
+	if err != nil {
+		return fmt.Errorf("os.Create(%s): %w", homePlanPath, err)
+	}
+	defer newPlan.Close()
+	plStr := pl.String()
+	if _, err := newPlan.Write([]byte(plStr)); err != nil {
+		return fmt.Errorf("file.Write(%s); %w", plStr[100:]+"...", err) // print out 100 first characters
+	}
+	return nil
+}
+
+func (p *PlanService) GetLocalPlanPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	homePlanPath := filepath.Join(home, ".plan")
+	return homePlanPath, nil
+}
+
+func (p *PlanService) GetLocalPlan() (*os.File, error) {
+	homePlanPath, err := p.GetLocalPlanPath()
+	if err != nil {
+		return nil, err
+	}
+
+	homePlan, err := os.Open(homePlanPath)
+	if err != nil {
+		return nil, fmt.Errorf("Open(%s): %w", homePlanPath, err)
+	}
+	return homePlan, err
+}
 
 func (p *PlanService) CopyOrCreatePlanFromStore(targetPath string) (int, error) {
 	// first check if we have an active plan file in the store

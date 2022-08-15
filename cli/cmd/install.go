@@ -11,11 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// serviceCmd represents the service command
-var serviceCmd = &cobra.Command{
-	Use:   "service",
-	Short: "Installs/Uninstalls the service",
-	Long:  `Makes a service that will watch your .plan file at startup and sync when published.`,
+// installCmd represents the install command
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
+
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		xPath, err := os.Executable()
 		if err != nil {
@@ -29,15 +34,15 @@ var serviceCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(serviceCmd)
+	serviceCmd.AddCommand(installCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// serviceCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// installCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// serviceCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// installCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

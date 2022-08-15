@@ -45,7 +45,7 @@ func (p program) Start(s service.Service) error {
 				log.Println("event:", event)
 				log.Println("modified file:", event.Name)
 				if event.Op == fsnotify.Write {
-					c := exec.CommandContext(p.baseCtx, os.Args[4], "-d")
+					c := exec.CommandContext(p.baseCtx, os.Args[4], "sync")
 					c.Env = []string{
 						"CHARM_HOST=" + os.Args[2],
 						"HOME=" + p.homeDir,

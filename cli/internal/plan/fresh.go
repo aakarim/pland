@@ -54,6 +54,11 @@ func (p *PlanService) Fresh() error {
 		return fmt.Errorf("Parse(): %w", err)
 	}
 
+	// add fun header
+	if pl.Header.Contents == "" {
+		pl.Header.Contents = "			🕴🏼			"
+	}
+
 	beginningOfDay := time.Now().Truncate(24 * time.Hour)
 
 	newEntry := Day{

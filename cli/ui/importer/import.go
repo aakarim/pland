@@ -63,7 +63,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.Err != nil {
-		return common.Styles.Error.Render(m.Err.Error())
+		return common.Styles.Error.Render(m.Err.Error()) + "\n"
 	}
 	str := common.Keyword("Welcome to pland! Create your account and start publishing your plans.\n\n")
 	switch m.status {

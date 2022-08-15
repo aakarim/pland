@@ -33,7 +33,7 @@ func TestParse(t *testing.T) {
 			name: "with only days",
 			args: args{
 				ctx: context.Background(),
-				planFile: `> plan.day/2022-08-14
+				planFile: `# plan.day/2022-08-14
 
 - [x] Read Part II of PLG Onboarding
 `,
@@ -72,12 +72,12 @@ func TestParse(t *testing.T) {
 			name: "with header token",
 			args: args{
 				ctx: context.Background(),
-				planFile: `> plan.header
+				planFile: `# plan.header
 
 		Hi! This is my == plan file. 😀✍ ==
 
 		---
-		> plan.day/2022-08-14
+		# plan.day/2022-08-14
 
 		- [x] Read Part II of PLG Onboarding
 		- [x] Study Org mode
@@ -86,7 +86,7 @@ func TestParse(t *testing.T) {
 			},
 			want: &PlanFile{
 				Header: Header{
-					token: `> plan.header`,
+					token: `# plan.header`,
 					Contents: `Hi! This is my == plan file. 😀✍ ==
 
 		---`,
@@ -103,20 +103,79 @@ func TestParse(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "empty header",
+			args: args{
+				ctx: context.Background(),
+				planFile: `# plan.header
+
+# plan.project/plan
+
+
+- [ ] add a daemon script
+- [ ] bug - if a file was reverted to a previous version (saved locally, reverted to previous version, saved), it will overwrite. There should be a way to detect this and action the revert, since that was the user's intention.
+- [ ] add Saga magic comment/section 
+- [ ] the onboarding experience should end with the user runnin the  command
+
+# plan.project/lix
+
+
+- [ ] Read stuff
+
+---
+
+# plan.day/2022-08-15
+
+- [ ] add a better header
+- [ ] install to $PATH
+- [ ] fix $PATH on pland
+
+# plan.day/2022-08-14
+
+- [x] Read Part II of PLG Onboarding
+- [x] Study Org mode
+- [x] Plan
+- [x] write parser for plans
+- [x] write stringifier for plans
+
+s`,
+			},
+			want: &PlanFile{
+				Header: Header{
+					token:    `# plan.header`,
+					Contents: "",
+				},
+				Days: []Day{
+					{
+						Contents: `- [x] Read Part II of PLG Onboarding
+		- [x] Study Org mode
+		- [ ] write stringifier for plans`,
+						Date: time.Date(2022, 8, 14, 0, 0, 0, 0, time.UTC),
+					},
+				},
+				ArbitrarySections: []ArbitrarySection{
+					{
+						Contents: `- [ ] Read stuff
+
+		---`,
+					},
+				},
+			},
+		},
+		{
 			name: "forwards compatability",
 			args: args{
 				ctx: context.Background(),
-				planFile: `> plan.header
+				planFile: `# plan.header
 
 		Hi! This is my == plan file. 😀✍ ==
 
 		---
-		> plan.project/lix
+		# plan.project/lix
 
 		- [ ] Read stuff
 
 		---
-		> plan.day/2022-08-14
+		# plan.day/2022-08-14
 
 		- [x] Read Part II of PLG Onboarding
 		- [x] Study Org mode
@@ -124,7 +183,7 @@ func TestParse(t *testing.T) {
 			},
 			want: &PlanFile{
 				Header: Header{
-					token: `> plan.header`,
+					token: `# plan.header`,
 					Contents: `Hi! This is my == plan file. 😀✍ ==
 
 		---`,

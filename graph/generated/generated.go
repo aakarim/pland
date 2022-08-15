@@ -776,7 +776,9 @@ input UserWhereInput {
   hasPlansWith: [PlanWhereInput!]
 }
 `, BuiltIn: false},
-	{Name: "graph/schema.graphqls", Input: `extend type User {
+	{Name: "graph/schema.graphqls", Input: `# I AM EDITABLE!
+
+extend type User {
   """ The most recent plan for this user """
   plan: Plan
 }

@@ -81,7 +81,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	str := common.Keyword("Welcome to pland! Create your account and start publishing your plans.\n\n")
+	str := common.Keyword("Welcome to dotPlan! Create your account and start publishing your plans to the world.\n\n")
 	if m.Err != nil {
 		if errors.Is(m.Err, charm.ErrMissingSSHAuth) {
 			return viewStyle.Render(str + common.Styles.Error.Render(

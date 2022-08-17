@@ -205,8 +205,12 @@ func (p PlanFile) String() string {
 		str += a.token + "\n\n"
 		str += a.Contents + "\n\n"
 	}
-	for _, d := range p.Days {
-		str += fmt.Sprintf("# plan.day/%s", d.Date.Format("2006-01-02")) + "\n\n"
+	for i, d := range p.Days {
+		str += fmt.Sprintf("# plan.day/%s", d.Date.Format("2006-01-02"))
+		if i == 0 {
+			str += " 🌱"
+		}
+		str += "\n\n"
 		str += d.Contents + "\n\n"
 	}
 	return str

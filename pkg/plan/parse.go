@@ -66,7 +66,7 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 		if strings.Contains(locStr, "plan.header") {
 			headerToken := strings.TrimSpace(planFile[sectionStartLoc:sectionEndLoc])
 			p.Header.Contents = headerToken
-			spl := strings.Split(headerToken, "/")
+			spl := strings.Split(locStr, "/")
 			// if does not exist then it may be an initial version
 			if len(spl) > 1 {
 				p.ParentVersion, err = strconv.Atoi(spl[1])

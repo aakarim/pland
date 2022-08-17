@@ -4,6 +4,9 @@ mutation CreatePlan($txt: String!, $date: Time!) {
     txt
     digest
     hasConflict
+    prev {
+      id
+    }
   }
 }
 

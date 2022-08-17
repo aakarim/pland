@@ -16,9 +16,9 @@ require (
 	github.com/charmbracelet/lipgloss v0.5.1-0.20220407020210-a86f21a0ae43
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gliderlabs/ssh v0.3.3
+	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hexops/gotextdiff v1.0.3
 	github.com/kardianos/service v1.2.1
 	github.com/magefile/mage v1.13.0
 	github.com/muesli/reflow v0.3.0
@@ -52,7 +52,6 @@ require (
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect

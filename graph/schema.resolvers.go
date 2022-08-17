@@ -37,50 +37,65 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	if err != nil && !noTail {
 		return nil, fmt.Errorf("could not get tail: %w", err)
 	}
-	// if no tail then this is the first one
-	if noTail {
-		tail, err = r.Client.Plan.Create().
-			SetAuthor(user).
-			SetDigest(p.Digest()).
-			SetCreatedAt(time.Now()).
-			SetHasConflict(false).
-			SetTxt(p.String()).
-			Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("could not save plan: %w", err)
-		}
-		return tail, nil
-	}
 	// if they don't match then we need to do a merge
 	tailPrev, err := tail.Prev(ctx)
 	if err != nil && !ent.IsNotFound(err) {
 		return nil, fmt.Errorf("tail.Prev: %w", err)
 	}
+	// if no tail then this is the first one
+	if noTail {
+		tail, err := r.Client.Plan.Create().
+			SetAuthor(user).
+			SetDigest(p.Digest()).
+			SetCreatedAt(time.Now()).
+			SetHasConflict(false).
+			SetTxt(p.String()).Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not save plan: %w", err)
+		}
+		return tail, nil
+	}
+	// this is second one, no conflict
+	if tailPrev == nil {
+		tail, err := r.Client.Plan.Create().
+			SetAuthor(user).
+			SetDigest(p.Digest()).
+			SetCreatedAt(time.Now()).
+			SetPrev(tail).
+			SetHasConflict(false).
+			SetTxt(p.String()).Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not save plan: %w", err)
+		}
+		return tail, nil
+	}
 
 	// tailPrev being nil means that the tail is the first entry
-	if (tailPrev == nil || tailPrev.ID != p.ParentVersion) && tail.Digest != p.Digest() {
+	var conflict bool
+	if tailPrev.ID != p.ParentVersion && tail.Digest != p.Digest() {
 		pTail, err := planEntity.Parse(ctx, tail.Txt)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse tail: %w", err)
 		}
-		pf, err := planEntity.Diff(p, pTail)
+		p, err = planEntity.Diff(p, pTail)
 		if err != nil && !errors.Is(err, planEntity.ErrConflict) {
 			return nil, fmt.Errorf("could not diff: %w", err)
 		}
-		conflict := errors.Is(err, planEntity.ErrConflict)
+		conflict = errors.Is(err, planEntity.ErrConflict)
 
-		// save plan file
-		tail, err = r.Client.Plan.Create().
-			SetAuthor(user).
-			SetDigest(pf.Digest()).
-			SetCreatedAt(time.Now()).
-			SetHasConflict(conflict).
-			SetPrev(tail).
-			SetTxt(pf.String()).
-			Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("could not save plan: %w", err)
-		}
+	}
+	// save plan file
+	p.ParentVersion = tail.ID
+	tail, err = r.Client.Plan.Create().
+		SetAuthor(user).
+		SetDigest(p.Digest()).
+		SetCreatedAt(time.Now()).
+		SetHasConflict(conflict).
+		SetPrev(tail).
+		SetTxt(p.String()).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not save plan: %w", err)
 	}
 	// TODO: build new derived data from plan/ fire event
 	return tail, nil

@@ -101,6 +101,7 @@ func Diff(p1 *PlanFile, p2 *PlanFile) (*PlanFile, error) {
 		}
 		newArbSection := ArbitrarySection{
 			Contents: a.Contents,
+			token:    a.token,
 		}
 		if diff := prettyDiff(a.Contents, otherSetContents); diff != "" {
 			conflict = true

@@ -11,10 +11,11 @@ import (
 
 // CreatePlanCreatePlan includes the requested fields of the GraphQL type Plan.
 type CreatePlanCreatePlan struct {
-	Id          string `json:"id"`
-	Txt         string `json:"txt"`
-	Digest      string `json:"digest"`
-	HasConflict bool   `json:"hasConflict"`
+	Id          string                       `json:"id"`
+	Txt         string                       `json:"txt"`
+	Digest      string                       `json:"digest"`
+	HasConflict bool                         `json:"hasConflict"`
+	Prev        CreatePlanCreatePlanPrevPlan `json:"prev"`
 }
 
 // GetId returns CreatePlanCreatePlan.Id, and is useful for accessing the field via an interface.
@@ -28,6 +29,17 @@ func (v *CreatePlanCreatePlan) GetDigest() string { return v.Digest }
 
 // GetHasConflict returns CreatePlanCreatePlan.HasConflict, and is useful for accessing the field via an interface.
 func (v *CreatePlanCreatePlan) GetHasConflict() bool { return v.HasConflict }
+
+// GetPrev returns CreatePlanCreatePlan.Prev, and is useful for accessing the field via an interface.
+func (v *CreatePlanCreatePlan) GetPrev() CreatePlanCreatePlanPrevPlan { return v.Prev }
+
+// CreatePlanCreatePlanPrevPlan includes the requested fields of the GraphQL type Plan.
+type CreatePlanCreatePlanPrevPlan struct {
+	Id string `json:"id"`
+}
+
+// GetId returns CreatePlanCreatePlanPrevPlan.Id, and is useful for accessing the field via an interface.
+func (v *CreatePlanCreatePlanPrevPlan) GetId() string { return v.Id }
 
 // CreatePlanResponse is returned by CreatePlan on success.
 type CreatePlanResponse struct {
@@ -97,6 +109,9 @@ mutation CreatePlan ($txt: String!, $date: Time!) {
 		txt
 		digest
 		hasConflict
+		prev {
+			id
+		}
 	}
 }
 `,

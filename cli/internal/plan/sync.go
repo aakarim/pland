@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -58,9 +59,10 @@ func (p *PlanService) Sync() (conflict bool, err error) {
 		return conflict, fmt.Errorf("error creating: %w", err)
 	}
 	conflict = resp.CreatePlan.HasConflict
-	// if the created plan is different to the current digest then overwrite
+	// if the created plan's parent is different then we hae a new version and overwrite
+	// the digest includes the parent, so it will be diferent if parents are different
 	if resp.CreatePlan.Digest != homePlan.Digest() {
-		fmt.Println("local file is old, replacing with server version...")
+		log.Println("local file is old, replacing with server version...")
 		// write to an 'old' file first as backup
 		overwriteF, err := os.Create(homePlanPath)
 		if err != nil {
@@ -71,9 +73,9 @@ func (p *PlanService) Sync() (conflict bool, err error) {
 			return conflict, fmt.Errorf("file.Write(%s): %w", homePlanPath, err)
 		}
 		overwriteF.Close()
-		fmt.Println("overwritten")
+		log.Println("overwritten")
 	}
-	fmt.Println("synced", resp.CreatePlan.Id)
+	log.Println("synced", resp.CreatePlan.Id)
 	return conflict, err
 }
 

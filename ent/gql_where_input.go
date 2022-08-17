@@ -30,16 +30,6 @@ type PlanWhereInput struct {
 	IDLT    *int  `json:"idLT,omitempty"`
 	IDLTE   *int  `json:"idLTE,omitempty"`
 
-	// "date" field predicates.
-	Date      *time.Time  `json:"date,omitempty"`
-	DateNEQ   *time.Time  `json:"dateNEQ,omitempty"`
-	DateIn    []time.Time `json:"dateIn,omitempty"`
-	DateNotIn []time.Time `json:"dateNotIn,omitempty"`
-	DateGT    *time.Time  `json:"dateGT,omitempty"`
-	DateGTE   *time.Time  `json:"dateGTE,omitempty"`
-	DateLT    *time.Time  `json:"dateLT,omitempty"`
-	DateLTE   *time.Time  `json:"dateLTE,omitempty"`
-
 	// "created_at" field predicates.
 	CreatedAt      *time.Time  `json:"createdAt,omitempty"`
 	CreatedAtNEQ   *time.Time  `json:"createdAtNEQ,omitempty"`
@@ -50,15 +40,9 @@ type PlanWhereInput struct {
 	CreatedAtLT    *time.Time  `json:"createdAtLT,omitempty"`
 	CreatedAtLTE   *time.Time  `json:"createdAtLTE,omitempty"`
 
-	// "timestamp" field predicates.
-	Timestamp      *time.Time  `json:"timestamp,omitempty"`
-	TimestampNEQ   *time.Time  `json:"timestampNEQ,omitempty"`
-	TimestampIn    []time.Time `json:"timestampIn,omitempty"`
-	TimestampNotIn []time.Time `json:"timestampNotIn,omitempty"`
-	TimestampGT    *time.Time  `json:"timestampGT,omitempty"`
-	TimestampGTE   *time.Time  `json:"timestampGTE,omitempty"`
-	TimestampLT    *time.Time  `json:"timestampLT,omitempty"`
-	TimestampLTE   *time.Time  `json:"timestampLTE,omitempty"`
+	// "has_conflict" field predicates.
+	HasConflict    *bool `json:"hasConflict,omitempty"`
+	HasConflictNEQ *bool `json:"hasConflictNEQ,omitempty"`
 
 	// "digest" field predicates.
 	Digest             *string  `json:"digest,omitempty"`
@@ -93,6 +77,14 @@ type PlanWhereInput struct {
 	// "author" edge predicates.
 	HasAuthor     *bool             `json:"hasAuthor,omitempty"`
 	HasAuthorWith []*UserWhereInput `json:"hasAuthorWith,omitempty"`
+
+	// "prev" edge predicates.
+	HasPrev     *bool             `json:"hasPrev,omitempty"`
+	HasPrevWith []*PlanWhereInput `json:"hasPrevWith,omitempty"`
+
+	// "next" edge predicates.
+	HasNext     *bool             `json:"hasNext,omitempty"`
+	HasNextWith []*PlanWhereInput `json:"hasNextWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
@@ -190,30 +182,6 @@ func (i *PlanWhereInput) P() (predicate.Plan, error) {
 	if i.IDLTE != nil {
 		predicates = append(predicates, plan.IDLTE(*i.IDLTE))
 	}
-	if i.Date != nil {
-		predicates = append(predicates, plan.DateEQ(*i.Date))
-	}
-	if i.DateNEQ != nil {
-		predicates = append(predicates, plan.DateNEQ(*i.DateNEQ))
-	}
-	if len(i.DateIn) > 0 {
-		predicates = append(predicates, plan.DateIn(i.DateIn...))
-	}
-	if len(i.DateNotIn) > 0 {
-		predicates = append(predicates, plan.DateNotIn(i.DateNotIn...))
-	}
-	if i.DateGT != nil {
-		predicates = append(predicates, plan.DateGT(*i.DateGT))
-	}
-	if i.DateGTE != nil {
-		predicates = append(predicates, plan.DateGTE(*i.DateGTE))
-	}
-	if i.DateLT != nil {
-		predicates = append(predicates, plan.DateLT(*i.DateLT))
-	}
-	if i.DateLTE != nil {
-		predicates = append(predicates, plan.DateLTE(*i.DateLTE))
-	}
 	if i.CreatedAt != nil {
 		predicates = append(predicates, plan.CreatedAtEQ(*i.CreatedAt))
 	}
@@ -238,29 +206,11 @@ func (i *PlanWhereInput) P() (predicate.Plan, error) {
 	if i.CreatedAtLTE != nil {
 		predicates = append(predicates, plan.CreatedAtLTE(*i.CreatedAtLTE))
 	}
-	if i.Timestamp != nil {
-		predicates = append(predicates, plan.TimestampEQ(*i.Timestamp))
+	if i.HasConflict != nil {
+		predicates = append(predicates, plan.HasConflictEQ(*i.HasConflict))
 	}
-	if i.TimestampNEQ != nil {
-		predicates = append(predicates, plan.TimestampNEQ(*i.TimestampNEQ))
-	}
-	if len(i.TimestampIn) > 0 {
-		predicates = append(predicates, plan.TimestampIn(i.TimestampIn...))
-	}
-	if len(i.TimestampNotIn) > 0 {
-		predicates = append(predicates, plan.TimestampNotIn(i.TimestampNotIn...))
-	}
-	if i.TimestampGT != nil {
-		predicates = append(predicates, plan.TimestampGT(*i.TimestampGT))
-	}
-	if i.TimestampGTE != nil {
-		predicates = append(predicates, plan.TimestampGTE(*i.TimestampGTE))
-	}
-	if i.TimestampLT != nil {
-		predicates = append(predicates, plan.TimestampLT(*i.TimestampLT))
-	}
-	if i.TimestampLTE != nil {
-		predicates = append(predicates, plan.TimestampLTE(*i.TimestampLTE))
+	if i.HasConflictNEQ != nil {
+		predicates = append(predicates, plan.HasConflictNEQ(*i.HasConflictNEQ))
 	}
 	if i.Digest != nil {
 		predicates = append(predicates, plan.DigestEQ(*i.Digest))
@@ -358,6 +308,42 @@ func (i *PlanWhereInput) P() (predicate.Plan, error) {
 			with = append(with, p)
 		}
 		predicates = append(predicates, plan.HasAuthorWith(with...))
+	}
+	if i.HasPrev != nil {
+		p := plan.HasPrev()
+		if !*i.HasPrev {
+			p = plan.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasPrevWith) > 0 {
+		with := make([]predicate.Plan, 0, len(i.HasPrevWith))
+		for _, w := range i.HasPrevWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasPrevWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, plan.HasPrevWith(with...))
+	}
+	if i.HasNext != nil {
+		p := plan.HasNext()
+		if !*i.HasNext {
+			p = plan.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasNextWith) > 0 {
+		with := make([]predicate.Plan, 0, len(i.HasNextWith))
+		for _, w := range i.HasNextWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasNextWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, plan.HasNextWith(with...))
 	}
 	switch len(predicates) {
 	case 0:

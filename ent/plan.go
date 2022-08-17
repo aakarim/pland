@@ -17,12 +17,10 @@ type Plan struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
-	// Date holds the value of the "date" field.
-	Date time.Time `json:"date,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
-	// Timestamp holds the value of the "timestamp" field.
-	Timestamp time.Time `json:"timestamp,omitempty"`
+	// HasConflict holds the value of the "has_conflict" field.
+	HasConflict bool `json:"has_conflict,omitempty"`
 	// Digest holds the value of the "digest" field.
 	Digest string `json:"digest,omitempty"`
 	// Txt holds the value of the "txt" field.
@@ -30,6 +28,7 @@ type Plan struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanQuery when eager-loading is set.
 	Edges      PlanEdges `json:"edges"`
+	plan_next  *int
 	user_plans *int
 }
 
@@ -37,11 +36,15 @@ type Plan struct {
 type PlanEdges struct {
 	// Author holds the value of the author edge.
 	Author *User `json:"author,omitempty"`
+	// Prev holds the value of the prev edge.
+	Prev *Plan `json:"prev,omitempty"`
+	// Next holds the value of the next edge.
+	Next *Plan `json:"next,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
 	// totalCount holds the count of the edges above.
-	totalCount [1]*int
+	totalCount [3]map[string]int
 }
 
 // AuthorOrErr returns the Author value or an error if the edge
@@ -49,8 +52,7 @@ type PlanEdges struct {
 func (e PlanEdges) AuthorOrErr() (*User, error) {
 	if e.loadedTypes[0] {
 		if e.Author == nil {
-			// The edge author was loaded in eager-loading,
-			// but was not found.
+			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: user.Label}
 		}
 		return e.Author, nil
@@ -58,18 +60,48 @@ func (e PlanEdges) AuthorOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "author"}
 }
 
+// PrevOrErr returns the Prev value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PlanEdges) PrevOrErr() (*Plan, error) {
+	if e.loadedTypes[1] {
+		if e.Prev == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: plan.Label}
+		}
+		return e.Prev, nil
+	}
+	return nil, &NotLoadedError{edge: "prev"}
+}
+
+// NextOrErr returns the Next value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PlanEdges) NextOrErr() (*Plan, error) {
+	if e.loadedTypes[2] {
+		if e.Next == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: plan.Label}
+		}
+		return e.Next, nil
+	}
+	return nil, &NotLoadedError{edge: "next"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Plan) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case plan.FieldHasConflict:
+			values[i] = new(sql.NullBool)
 		case plan.FieldID:
 			values[i] = new(sql.NullInt64)
 		case plan.FieldDigest, plan.FieldTxt:
 			values[i] = new(sql.NullString)
-		case plan.FieldDate, plan.FieldCreatedAt, plan.FieldTimestamp:
+		case plan.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
-		case plan.ForeignKeys[0]: // user_plans
+		case plan.ForeignKeys[0]: // plan_next
+			values[i] = new(sql.NullInt64)
+		case plan.ForeignKeys[1]: // user_plans
 			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Plan", columns[i])
@@ -92,23 +124,17 @@ func (pl *Plan) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			pl.ID = int(value.Int64)
-		case plan.FieldDate:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field date", values[i])
-			} else if value.Valid {
-				pl.Date = value.Time
-			}
 		case plan.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				pl.CreatedAt = value.Time
 			}
-		case plan.FieldTimestamp:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field timestamp", values[i])
+		case plan.FieldHasConflict:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field has_conflict", values[i])
 			} else if value.Valid {
-				pl.Timestamp = value.Time
+				pl.HasConflict = value.Bool
 			}
 		case plan.FieldDigest:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -124,6 +150,13 @@ func (pl *Plan) assignValues(columns []string, values []interface{}) error {
 			}
 		case plan.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field plan_next", value)
+			} else if value.Valid {
+				pl.plan_next = new(int)
+				*pl.plan_next = int(value.Int64)
+			}
+		case plan.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field user_plans", value)
 			} else if value.Valid {
 				pl.user_plans = new(int)
@@ -137,6 +170,16 @@ func (pl *Plan) assignValues(columns []string, values []interface{}) error {
 // QueryAuthor queries the "author" edge of the Plan entity.
 func (pl *Plan) QueryAuthor() *UserQuery {
 	return (&PlanClient{config: pl.config}).QueryAuthor(pl)
+}
+
+// QueryPrev queries the "prev" edge of the Plan entity.
+func (pl *Plan) QueryPrev() *PlanQuery {
+	return (&PlanClient{config: pl.config}).QueryPrev(pl)
+}
+
+// QueryNext queries the "next" edge of the Plan entity.
+func (pl *Plan) QueryNext() *PlanQuery {
+	return (&PlanClient{config: pl.config}).QueryNext(pl)
 }
 
 // Update returns a builder for updating this Plan.
@@ -162,14 +205,11 @@ func (pl *Plan) String() string {
 	var builder strings.Builder
 	builder.WriteString("Plan(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", pl.ID))
-	builder.WriteString("date=")
-	builder.WriteString(pl.Date.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(pl.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("timestamp=")
-	builder.WriteString(pl.Timestamp.Format(time.ANSIC))
+	builder.WriteString("has_conflict=")
+	builder.WriteString(fmt.Sprintf("%v", pl.HasConflict))
 	builder.WriteString(", ")
 	builder.WriteString("digest=")
 	builder.WriteString(pl.Digest)

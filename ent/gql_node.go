@@ -51,38 +51,30 @@ func (pl *Plan) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     pl.ID,
 		Type:   "Plan",
-		Fields: make([]*Field, 5),
-		Edges:  make([]*Edge, 1),
+		Fields: make([]*Field, 4),
+		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
-	if buf, err = json.Marshal(pl.Date); err != nil {
+	if buf, err = json.Marshal(pl.CreatedAt); err != nil {
 		return nil, err
 	}
 	node.Fields[0] = &Field{
 		Type:  "time.Time",
-		Name:  "date",
-		Value: string(buf),
-	}
-	if buf, err = json.Marshal(pl.CreatedAt); err != nil {
-		return nil, err
-	}
-	node.Fields[1] = &Field{
-		Type:  "time.Time",
 		Name:  "created_at",
 		Value: string(buf),
 	}
-	if buf, err = json.Marshal(pl.Timestamp); err != nil {
+	if buf, err = json.Marshal(pl.HasConflict); err != nil {
 		return nil, err
 	}
-	node.Fields[2] = &Field{
-		Type:  "time.Time",
-		Name:  "timestamp",
+	node.Fields[1] = &Field{
+		Type:  "bool",
+		Name:  "has_conflict",
 		Value: string(buf),
 	}
 	if buf, err = json.Marshal(pl.Digest); err != nil {
 		return nil, err
 	}
-	node.Fields[3] = &Field{
+	node.Fields[2] = &Field{
 		Type:  "string",
 		Name:  "digest",
 		Value: string(buf),
@@ -90,7 +82,7 @@ func (pl *Plan) Node(ctx context.Context) (node *Node, err error) {
 	if buf, err = json.Marshal(pl.Txt); err != nil {
 		return nil, err
 	}
-	node.Fields[4] = &Field{
+	node.Fields[3] = &Field{
 		Type:  "string",
 		Name:  "txt",
 		Value: string(buf),
@@ -102,6 +94,26 @@ func (pl *Plan) Node(ctx context.Context) (node *Node, err error) {
 	err = pl.QueryAuthor().
 		Select(user.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Plan",
+		Name: "prev",
+	}
+	err = pl.QueryPrev().
+		Select(plan.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "Plan",
+		Name: "next",
+	}
+	err = pl.QueryNext().
+		Select(plan.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
 	if err != nil {
 		return nil, err
 	}

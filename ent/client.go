@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -65,7 +66,7 @@ func Open(driverName, dataSourceName string, options ...Option) (*Client, error)
 // is used until the transaction is committed or rolled back.
 func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	if _, ok := c.driver.(*txDriver); ok {
-		return nil, fmt.Errorf("ent: cannot start a transaction within a transaction")
+		return nil, errors.New("ent: cannot start a transaction within a transaction")
 	}
 	tx, err := newTx(ctx, c.driver)
 	if err != nil {
@@ -84,7 +85,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 // BeginTx returns a transactional client with specified options.
 func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	if _, ok := c.driver.(*txDriver); ok {
-		return nil, fmt.Errorf("ent: cannot start a transaction within a transaction")
+		return nil, errors.New("ent: cannot start a transaction within a transaction")
 	}
 	tx, err := c.driver.(interface {
 		BeginTx(context.Context, *sql.TxOptions) (dialect.Tx, error)
@@ -226,6 +227,38 @@ func (c *PlanClient) QueryAuthor(pl *Plan) *UserQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, plan.AuthorTable, plan.AuthorColumn),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPrev queries the prev edge of a Plan.
+func (c *PlanClient) QueryPrev(pl *Plan) *PlanQuery {
+	query := &PlanQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, plan.PrevTable, plan.PrevColumn),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryNext queries the next edge of a Plan.
+func (c *PlanClient) QueryNext(pl *Plan) *PlanQuery {
+	query := &PlanQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, plan.NextTable, plan.NextColumn),
 		)
 		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
 		return fromV, nil

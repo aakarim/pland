@@ -5,8 +5,8 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aakarim/pland/ent"
@@ -14,8 +14,8 @@ import (
 	"github.com/aakarim/pland/ent/user"
 	"github.com/aakarim/pland/graph/generated"
 	"github.com/aakarim/pland/graph/model"
+	planEntity "github.com/aakarim/pland/pkg/plan"
 	"github.com/aakarim/pland/ssh-backend/pkg/auth"
-	xxhash "github.com/cespare/xxhash/v2"
 )
 
 func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePlanCLIInput) (*ent.Plan, error) {
@@ -23,37 +23,82 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	if user == nil {
 		return nil, ErrAccessDenied
 	}
-	// convert timestamp to date
-	y, m, d := input.Date.Date()
-	setDate, err := time.Parse("2006-1-2", fmt.Sprintf("%d-%d-%d", y, m, d))
+
+	p, err := planEntity.Parse(ctx, input.Txt)
 	if err != nil {
-		return nil, fmt.Errorf("time.Parse(): %w", err)
+		return nil, fmt.Errorf("parse: %w", err)
 	}
-	digest := fmt.Sprintf("%d", xxhash.Sum64String(input.Txt))
-	existingPlan, err := r.Client.Plan.Query().Where(
-		plan.DateEQ(setDate),
-		plan.DigestEQ(digest),
-	).First(ctx)
+	// get the tip
+	tail, err := r.Client.Plan.Query().
+		Where(plan.Not(plan.HasNext())).
+		WithPrev().
+		Only(ctx)
+	noTail := ent.IsNotFound(err)
+	if err != nil && !noTail {
+		return nil, fmt.Errorf("could not get tail: %w", err)
+	}
+	// if they don't match then we need to do a merge
+	tailPrev, err := tail.Prev(ctx)
 	if err != nil && !ent.IsNotFound(err) {
-		return nil, fmt.Errorf("error retrieving existingPlan: %w", err)
+		return nil, fmt.Errorf("tail.Prev: %w", err)
 	}
-	if existingPlan != nil {
-		log.Println("not saving existing plan", existingPlan.ID)
-		return existingPlan, nil
+	// if no tail then this is the first one
+	if noTail {
+		tail, err := r.Client.Plan.Create().
+			SetAuthor(user).
+			SetDigest(p.Digest()).
+			SetCreatedAt(time.Now()).
+			SetHasConflict(false).
+			SetTxt(p.String()).Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not save plan: %w", err)
+		}
+		return tail, nil
 	}
-	ts := input.Timestamp
-	if ts == nil {
-		now := time.Now()
-		ts = &now
+	// this is second one, no conflict
+	if tailPrev == nil {
+		tail, err := r.Client.Plan.Create().
+			SetAuthor(user).
+			SetDigest(p.Digest()).
+			SetCreatedAt(time.Now()).
+			SetPrev(tail).
+			SetHasConflict(false).
+			SetTxt(p.String()).Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not save plan: %w", err)
+		}
+		return tail, nil
 	}
-	log.Printf("storing plan date %d-%d-%d for user %v", input.Date.Year(), input.Date.Month(), input.Date.Day(), user.ID)
-	return r.Client.Plan.Create().
+
+	// tailPrev being nil means that the tail is the first entry
+	var conflict bool
+	if tailPrev.ID != p.ParentVersion && tail.Digest != p.Digest() {
+		pTail, err := planEntity.Parse(ctx, tail.Txt)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse tail: %w", err)
+		}
+		p, err = planEntity.Diff(p, pTail)
+		if err != nil && !errors.Is(err, planEntity.ErrConflict) {
+			return nil, fmt.Errorf("could not diff: %w", err)
+		}
+		conflict = errors.Is(err, planEntity.ErrConflict)
+
+	}
+	// save plan file
+	p.ParentVersion = tail.ID
+	tail, err = r.Client.Plan.Create().
 		SetAuthor(user).
-		SetDate(setDate).
-		SetDigest(digest).
-		SetTimestamp(*ts).
+		SetDigest(p.Digest()).
 		SetCreatedAt(time.Now()).
-		SetTxt(input.Txt).Save(ctx)
+		SetHasConflict(conflict).
+		SetPrev(tail).
+		SetTxt(p.String()).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not save plan: %w", err)
+	}
+	// TODO: build new derived data from plan/ fire event
+	return tail, nil
 }
 
 func (r *queryResolver) User(ctx context.Context, name string) (*ent.User, error) {
@@ -74,7 +119,7 @@ func (r *queryResolver) Fyp(ctx context.Context, after *ent.Cursor, first *int, 
 }
 
 func (r *userResolver) Plan(ctx context.Context, obj *ent.User) (*ent.Plan, error) {
-	plans, err := obj.QueryPlans().Order(ent.Desc(plan.FieldDate), ent.Desc(plan.FieldTimestamp)).All(ctx)
+	plans, err := obj.QueryPlans().Order(ent.Desc(plan.FieldCreatedAt)).All(ctx)
 	if err != nil {
 		return nil, err
 	}

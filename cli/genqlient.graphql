@@ -3,8 +3,10 @@ mutation CreatePlan($txt: String!, $date: Time!) {
     id
     txt
     digest
-    date
-    timestamp
+    hasConflict
+    prev {
+      id
+    }
   }
 }
 
@@ -14,8 +16,6 @@ query GetLatestPlan {
       id
       txt
       digest
-      date
-      timestamp
     }
   }
 }

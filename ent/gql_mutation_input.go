@@ -8,23 +8,29 @@ import (
 
 // CreatePlanInput represents a mutation input for creating plans.
 type CreatePlanInput struct {
-	Date      time.Time
-	CreatedAt time.Time
-	Timestamp time.Time
-	Digest    string
-	Txt       string
-	AuthorID  *int
+	CreatedAt   time.Time
+	HasConflict bool
+	Digest      string
+	Txt         string
+	AuthorID    *int
+	PrevID      *int
+	NextID      *int
 }
 
 // Mutate applies the CreatePlanInput on the PlanMutation builder.
 func (i *CreatePlanInput) Mutate(m *PlanMutation) {
-	m.SetDate(i.Date)
 	m.SetCreatedAt(i.CreatedAt)
-	m.SetTimestamp(i.Timestamp)
+	m.SetHasConflict(i.HasConflict)
 	m.SetDigest(i.Digest)
 	m.SetTxt(i.Txt)
 	if v := i.AuthorID; v != nil {
 		m.SetAuthorID(*v)
+	}
+	if v := i.PrevID; v != nil {
+		m.SetPrevID(*v)
+	}
+	if v := i.NextID; v != nil {
+		m.SetNextID(*v)
 	}
 }
 
@@ -40,6 +46,10 @@ type UpdatePlanInput struct {
 	Txt         *string
 	ClearAuthor bool
 	AuthorID    *int
+	ClearPrev   bool
+	PrevID      *int
+	ClearNext   bool
+	NextID      *int
 }
 
 // Mutate applies the UpdatePlanInput on the PlanMutation builder.
@@ -55,6 +65,18 @@ func (i *UpdatePlanInput) Mutate(m *PlanMutation) {
 	}
 	if v := i.AuthorID; v != nil {
 		m.SetAuthorID(*v)
+	}
+	if i.ClearPrev {
+		m.ClearPrev()
+	}
+	if v := i.PrevID; v != nil {
+		m.SetPrevID(*v)
+	}
+	if i.ClearNext {
+		m.ClearNext()
+	}
+	if v := i.NextID; v != nil {
+		m.SetNextID(*v)
 	}
 }
 

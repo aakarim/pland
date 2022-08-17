@@ -14,6 +14,7 @@ import (
 	"github.com/aakarim/pland/cli/internal/config"
 	"github.com/aakarim/pland/cli/internal/generated"
 	"github.com/aakarim/pland/cli/internal/graphclient"
+	planEntity "github.com/aakarim/pland/pkg/plan"
 	"github.com/charmbracelet/charm/client"
 )
 
@@ -49,9 +50,9 @@ func (p *PlanService) Fresh() error {
 		return err
 	}
 	// parse
-	pl, err := Parse(context.Background(), planFileStr)
+	pl, err := planEntity.Parse(context.Background(), planFileStr)
 	if err != nil {
-		return fmt.Errorf("Parse(): %w", err)
+		return fmt.Errorf("planEntity.Parse(): %w", err)
 	}
 
 	// add fun header
@@ -61,7 +62,7 @@ func (p *PlanService) Fresh() error {
 
 	beginningOfDay := time.Now().Truncate(24 * time.Hour)
 
-	newEntry := Day{
+	newEntry := planEntity.Day{
 		Contents: `- [x] run ` + "`plan fresh`" + "\n" + `- [ ] update todos`,
 		Date:     beginningOfDay,
 	}
@@ -74,14 +75,14 @@ func (p *PlanService) Fresh() error {
 	}
 
 	// add a new entry at the beginning of the list
-	pl.Days = append([]Day{newEntry}, pl.Days...)
+	pl.Days = append([]planEntity.Day{newEntry}, pl.Days...)
 	if err := p.OverwriteLocalPlan(pl); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PlanService) OverwriteLocalPlan(pl *PlanFile) error {
+func (p *PlanService) OverwriteLocalPlan(pl *planEntity.PlanFile) error {
 	// overwrite file with new version
 	homePlanPath, err := p.GetLocalPlanPath()
 	if err != nil {

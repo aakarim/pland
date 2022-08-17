@@ -16,6 +16,22 @@ func (pl *Plan) Author(ctx context.Context) (*User, error) {
 	return result, MaskNotFound(err)
 }
 
+func (pl *Plan) Prev(ctx context.Context) (*Plan, error) {
+	result, err := pl.Edges.PrevOrErr()
+	if IsNotLoaded(err) {
+		result, err = pl.QueryPrev().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (pl *Plan) Next(ctx context.Context) (*Plan, error) {
+	result, err := pl.Edges.NextOrErr()
+	if IsNotLoaded(err) {
+		result, err = pl.QueryNext().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
 func (u *User) Plans(
 	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *PlanOrder, where *PlanWhereInput,
 ) (*PlanConnection, error) {
@@ -23,67 +39,16 @@ func (u *User) Plans(
 		WithPlanOrder(orderBy),
 		WithPlanFilter(where.Filter),
 	}
-	totalCount := u.Edges.totalCount[0]
-	if nodes, err := u.Edges.PlansOrErr(); err == nil || totalCount != nil {
-		conn := &PlanConnection{Edges: []*PlanEdge{}}
-		if totalCount != nil {
-			conn.TotalCount = *totalCount
-		}
+	alias := graphql.GetFieldContext(ctx).Field.Alias
+	totalCount, hasTotalCount := u.Edges.totalCount[0][alias]
+	if nodes, err := u.NamedPlans(alias); err == nil || hasTotalCount {
 		pager, err := newPlanPager(opts)
 		if err != nil {
 			return nil, err
 		}
+		conn := &PlanConnection{Edges: []*PlanEdge{}, TotalCount: totalCount}
 		conn.build(nodes, pager, after, first, before, last)
 		return conn, nil
 	}
-	query := u.QueryPlans()
-	if err := validateFirstLast(first, last); err != nil {
-		return nil, err
-	}
-	pager, err := newPlanPager(opts)
-	if err != nil {
-		return nil, err
-	}
-	if query, err = pager.applyFilter(query); err != nil {
-		return nil, err
-	}
-	conn := &PlanConnection{Edges: []*PlanEdge{}}
-	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
-		if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
-			if totalCount != nil {
-				conn.TotalCount = *totalCount
-			} else if conn.TotalCount, err = query.Count(ctx); err != nil {
-				return nil, err
-			}
-			conn.PageInfo.HasNextPage = first != nil && conn.TotalCount > 0
-			conn.PageInfo.HasPreviousPage = last != nil && conn.TotalCount > 0
-		}
-		return conn, nil
-	}
-
-	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
-		count, err := query.Clone().Count(ctx)
-		if err != nil {
-			return nil, err
-		}
-		conn.TotalCount = count
-	}
-
-	query = pager.applyCursors(query, after, before)
-	query = pager.applyOrder(query, last != nil)
-	if limit := paginateLimit(first, last); limit != 0 {
-		query.Limit(limit)
-	}
-	if field := collectedField(ctx, edgesField, nodeField); field != nil {
-		if err := query.collectField(ctx, graphql.GetOperationContext(ctx), *field, []string{edgesField, nodeField}); err != nil {
-			return nil, err
-		}
-	}
-
-	nodes, err := query.All(ctx)
-	if err != nil || len(nodes) == 0 {
-		return conn, err
-	}
-	conn.build(nodes, pager, after, first, before, last)
-	return conn, nil
+	return u.QueryPlans().Paginate(ctx, after, first, before, last, opts...)
 }

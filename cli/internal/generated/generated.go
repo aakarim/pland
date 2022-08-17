@@ -11,11 +11,11 @@ import (
 
 // CreatePlanCreatePlan includes the requested fields of the GraphQL type Plan.
 type CreatePlanCreatePlan struct {
-	Id        string    `json:"id"`
-	Txt       string    `json:"txt"`
-	Digest    string    `json:"digest"`
-	Date      time.Time `json:"date"`
-	Timestamp time.Time `json:"timestamp"`
+	Id          string                       `json:"id"`
+	Txt         string                       `json:"txt"`
+	Digest      string                       `json:"digest"`
+	HasConflict bool                         `json:"hasConflict"`
+	Prev        CreatePlanCreatePlanPrevPlan `json:"prev"`
 }
 
 // GetId returns CreatePlanCreatePlan.Id, and is useful for accessing the field via an interface.
@@ -27,11 +27,19 @@ func (v *CreatePlanCreatePlan) GetTxt() string { return v.Txt }
 // GetDigest returns CreatePlanCreatePlan.Digest, and is useful for accessing the field via an interface.
 func (v *CreatePlanCreatePlan) GetDigest() string { return v.Digest }
 
-// GetDate returns CreatePlanCreatePlan.Date, and is useful for accessing the field via an interface.
-func (v *CreatePlanCreatePlan) GetDate() time.Time { return v.Date }
+// GetHasConflict returns CreatePlanCreatePlan.HasConflict, and is useful for accessing the field via an interface.
+func (v *CreatePlanCreatePlan) GetHasConflict() bool { return v.HasConflict }
 
-// GetTimestamp returns CreatePlanCreatePlan.Timestamp, and is useful for accessing the field via an interface.
-func (v *CreatePlanCreatePlan) GetTimestamp() time.Time { return v.Timestamp }
+// GetPrev returns CreatePlanCreatePlan.Prev, and is useful for accessing the field via an interface.
+func (v *CreatePlanCreatePlan) GetPrev() CreatePlanCreatePlanPrevPlan { return v.Prev }
+
+// CreatePlanCreatePlanPrevPlan includes the requested fields of the GraphQL type Plan.
+type CreatePlanCreatePlanPrevPlan struct {
+	Id string `json:"id"`
+}
+
+// GetId returns CreatePlanCreatePlanPrevPlan.Id, and is useful for accessing the field via an interface.
+func (v *CreatePlanCreatePlanPrevPlan) GetId() string { return v.Id }
 
 // CreatePlanResponse is returned by CreatePlan on success.
 type CreatePlanResponse struct {
@@ -52,11 +60,9 @@ func (v *GetLatestPlanMeUser) GetPlan() GetLatestPlanMeUserPlan { return v.Plan 
 
 // GetLatestPlanMeUserPlan includes the requested fields of the GraphQL type Plan.
 type GetLatestPlanMeUserPlan struct {
-	Id        string    `json:"id"`
-	Txt       string    `json:"txt"`
-	Digest    string    `json:"digest"`
-	Date      time.Time `json:"date"`
-	Timestamp time.Time `json:"timestamp"`
+	Id     string `json:"id"`
+	Txt    string `json:"txt"`
+	Digest string `json:"digest"`
 }
 
 // GetId returns GetLatestPlanMeUserPlan.Id, and is useful for accessing the field via an interface.
@@ -67,12 +73,6 @@ func (v *GetLatestPlanMeUserPlan) GetTxt() string { return v.Txt }
 
 // GetDigest returns GetLatestPlanMeUserPlan.Digest, and is useful for accessing the field via an interface.
 func (v *GetLatestPlanMeUserPlan) GetDigest() string { return v.Digest }
-
-// GetDate returns GetLatestPlanMeUserPlan.Date, and is useful for accessing the field via an interface.
-func (v *GetLatestPlanMeUserPlan) GetDate() time.Time { return v.Date }
-
-// GetTimestamp returns GetLatestPlanMeUserPlan.Timestamp, and is useful for accessing the field via an interface.
-func (v *GetLatestPlanMeUserPlan) GetTimestamp() time.Time { return v.Timestamp }
 
 // GetLatestPlanResponse is returned by GetLatestPlan on success.
 type GetLatestPlanResponse struct {
@@ -108,8 +108,10 @@ mutation CreatePlan ($txt: String!, $date: Time!) {
 		id
 		txt
 		digest
-		date
-		timestamp
+		hasConflict
+		prev {
+			id
+		}
 	}
 }
 `,
@@ -145,8 +147,6 @@ query GetLatestPlan {
 			id
 			txt
 			digest
-			date
-			timestamp
 		}
 	}
 }

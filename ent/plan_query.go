@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -24,8 +25,9 @@ type PlanQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Plan
-	// eager-loading edges.
 	withAuthor *UserQuery
+	withPrev   *PlanQuery
+	withNext   *PlanQuery
 	withFKs    bool
 	modifiers  []func(*sql.Selector)
 	loadTotal  []func(context.Context, []*Plan) error
@@ -80,6 +82,50 @@ func (pq *PlanQuery) QueryAuthor() *UserQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, plan.AuthorTable, plan.AuthorColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPrev chains the current query on the "prev" edge.
+func (pq *PlanQuery) QueryPrev() *PlanQuery {
+	query := &PlanQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, plan.PrevTable, plan.PrevColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNext chains the current query on the "next" edge.
+func (pq *PlanQuery) QueryNext() *PlanQuery {
+	query := &PlanQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, plan.NextTable, plan.NextColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -269,6 +315,8 @@ func (pq *PlanQuery) Clone() *PlanQuery {
 		order:      append([]OrderFunc{}, pq.order...),
 		predicates: append([]predicate.Plan{}, pq.predicates...),
 		withAuthor: pq.withAuthor.Clone(),
+		withPrev:   pq.withPrev.Clone(),
+		withNext:   pq.withNext.Clone(),
 		// clone intermediate query.
 		sql:    pq.sql.Clone(),
 		path:   pq.path,
@@ -287,18 +335,40 @@ func (pq *PlanQuery) WithAuthor(opts ...func(*UserQuery)) *PlanQuery {
 	return pq
 }
 
+// WithPrev tells the query-builder to eager-load the nodes that are connected to
+// the "prev" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithPrev(opts ...func(*PlanQuery)) *PlanQuery {
+	query := &PlanQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withPrev = query
+	return pq
+}
+
+// WithNext tells the query-builder to eager-load the nodes that are connected to
+// the "next" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithNext(opts ...func(*PlanQuery)) *PlanQuery {
+	query := &PlanQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withNext = query
+	return pq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
 // Example:
 //
 //	var v []struct {
-//		Date time.Time `json:"date,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Plan.Query().
-//		GroupBy(plan.FieldDate).
+//		GroupBy(plan.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 //
@@ -322,11 +392,11 @@ func (pq *PlanQuery) GroupBy(field string, fields ...string) *PlanGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Date time.Time `json:"date,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.Plan.Query().
-//		Select(plan.FieldDate).
+//		Select(plan.FieldCreatedAt).
 //		Scan(ctx, &v)
 //
 func (pq *PlanQuery) Select(fields ...string) *PlanSelect {
@@ -358,11 +428,13 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 		nodes       = []*Plan{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
 			pq.withAuthor != nil,
+			pq.withPrev != nil,
+			pq.withNext != nil,
 		}
 	)
-	if pq.withAuthor != nil {
+	if pq.withAuthor != nil || pq.withPrev != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -389,42 +461,117 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-
 	if query := pq.withAuthor; query != nil {
-		ids := make([]int, 0, len(nodes))
-		nodeids := make(map[int][]*Plan)
-		for i := range nodes {
-			if nodes[i].user_plans == nil {
-				continue
-			}
-			fk := *nodes[i].user_plans
-			if _, ok := nodeids[fk]; !ok {
-				ids = append(ids, fk)
-			}
-			nodeids[fk] = append(nodeids[fk], nodes[i])
-		}
-		query.Where(user.IDIn(ids...))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := pq.loadAuthor(ctx, query, nodes, nil,
+			func(n *Plan, e *User) { n.Edges.Author = e }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nodeids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_plans" returned %v`, n.ID)
-			}
-			for i := range nodes {
-				nodes[i].Edges.Author = n
-			}
+	}
+	if query := pq.withPrev; query != nil {
+		if err := pq.loadPrev(ctx, query, nodes, nil,
+			func(n *Plan, e *Plan) { n.Edges.Prev = e }); err != nil {
+			return nil, err
 		}
 	}
-
+	if query := pq.withNext; query != nil {
+		if err := pq.loadNext(ctx, query, nodes, nil,
+			func(n *Plan, e *Plan) { n.Edges.Next = e }); err != nil {
+			return nil, err
+		}
+	}
 	for i := range pq.loadTotal {
 		if err := pq.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
+}
+
+func (pq *PlanQuery) loadAuthor(ctx context.Context, query *UserQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *User)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Plan)
+	for i := range nodes {
+		if nodes[i].user_plans == nil {
+			continue
+		}
+		fk := *nodes[i].user_plans
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_plans" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (pq *PlanQuery) loadPrev(ctx context.Context, query *PlanQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Plan)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Plan)
+	for i := range nodes {
+		if nodes[i].plan_next == nil {
+			continue
+		}
+		fk := *nodes[i].plan_next
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(plan.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "plan_next" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (pq *PlanQuery) loadNext(ctx context.Context, query *PlanQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Plan)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Plan)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.Plan(func(s *sql.Selector) {
+		s.Where(sql.InValues(plan.NextColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.plan_next
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "plan_next" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "plan_next" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (pq *PlanQuery) sqlCount(ctx context.Context) (int, error) {

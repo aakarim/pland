@@ -22,7 +22,7 @@ func NewConfig(opts ...ConfigFunc) *Config {
 			GraphQLPort: 8080,
 			GraphQLPath: "/query",
 		},
-		ManagedPath: "k",
+		ManagedPath: "",
 	}
 	for _, opt := range opts {
 		opt(c)

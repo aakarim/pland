@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
-	"text/scanner"
 	"time"
+
+	"github.com/cespare/xxhash"
 )
 
 type PlanFile struct {
+	ParentVersion     int
 	Header            Header
 	ArbitrarySections []ArbitrarySection
 	Days              []Day // ordered by descending time order
@@ -18,27 +21,31 @@ type PlanFile struct {
 }
 
 type Header struct {
-	Contents         string
-	tokenStartLoc    scanner.Position
-	contentsStartLoc scanner.Position
-	sectionEndLoc    scanner.Position
-	token            string // the token that is used to designate the header - could be empty.
+	Contents string
+	// tokenStartLoc    scanner.Position
+	// contentsStartLoc scanner.Position
+	// sectionEndLoc    scanner.Position
+	token string // the token that is used to designate the header - could be empty.
 }
 
 type ArbitrarySection struct {
-	Contents         string
-	tokenStartLoc    scanner.Position
-	contentsStartLoc scanner.Position
-	sectionEndLoc    scanner.Position
-	token            string
+	Contents string
+	// tokenStartLoc    scanner.Position
+	// contentsStartLoc scanner.Position
+	// sectionEndLoc    scanner.Position
+	token string
 }
 
 type Day struct {
-	Date            time.Time
-	Contents        string
-	tokenStartLoc   scanner.Position
-	contentStartLoc scanner.Position
-	sectionEndLoc   scanner.Position
+	Date     time.Time
+	Contents string
+	// tokenStartLoc   scanner.Position
+	// contentStartLoc scanner.Position
+	// sectionEndLoc   scanner.Position
+}
+
+func (p *PlanFile) Digest() string {
+	return fmt.Sprintf("%d", xxhash.Sum64String(p.String()))
 }
 
 func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
@@ -50,19 +57,28 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 	fileEndLoc := len(planFile) - 1
 	locs := rResource.FindAllStringIndex(planFile, -1)
 	for i, loc := range locs {
-		locStr := planFile[loc[0]:loc[1]]
+		locStr := strings.TrimSpace(planFile[loc[0]:loc[1]])
 		sectionStartLoc := loc[1] + 1
 		sectionEndLoc := fileEndLoc + 1
 		if i != len(locs)-1 {
 			sectionEndLoc = locs[i+1][0] - 1 // character before beginning of next resource
 		}
 		if strings.Contains(locStr, "plan.header") {
-			p.Header.Contents = strings.TrimSpace(planFile[sectionStartLoc:sectionEndLoc])
+			headerToken := strings.TrimSpace(planFile[sectionStartLoc:sectionEndLoc])
+			p.Header.Contents = headerToken
+			spl := strings.Split(locStr, "/")
+			// if does not exist then it may be an initial version
+			if len(spl) > 1 {
+				p.ParentVersion, err = strconv.Atoi(spl[1])
+				if err != nil {
+					return nil, fmt.Errorf("parsing header: %w", err)
+				}
+			}
 			continue
 		}
 		if strings.Contains(locStr, "plan.day") {
 			// get date
-			rDate, err := regexp.Compile("[\\d+].+-.+")
+			rDate, err := regexp.Compile(`[\d+]+-[\d+]+-[\d+]+`)
 			if err != nil {
 				return nil, err
 			}
@@ -183,14 +199,18 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 
 func (p PlanFile) String() string {
 	var str string
-	str += "# plan.header" + "\n\n"
+	str += "# plan.header" + "/" + strconv.Itoa(p.ParentVersion) + "\n\n"
 	str += p.Header.Contents + "\n\n"
 	for _, a := range p.ArbitrarySections {
 		str += a.token + "\n\n"
 		str += a.Contents + "\n\n"
 	}
-	for _, d := range p.Days {
-		str += fmt.Sprintf("# plan.day/%s", d.Date.Format("2006-01-02")) + "\n\n"
+	for i, d := range p.Days {
+		str += fmt.Sprintf("# plan.day/%s", d.Date.Format("2006-01-02"))
+		if i == 0 {
+			str += " 🌱"
+		}
+		str += "\n\n"
 		str += d.Contents + "\n\n"
 	}
 	return str

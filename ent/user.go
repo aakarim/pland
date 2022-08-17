@@ -40,7 +40,9 @@ type UserEdges struct {
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [1]bool
 	// totalCount holds the count of the edges above.
-	totalCount [1]*int
+	totalCount [1]map[string]int
+
+	namedPlans map[string][]*Plan
 }
 
 // PlansOrErr returns the Plans value or an error if the edge
@@ -165,6 +167,30 @@ func (u *User) String() string {
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedPlans returns the Plans named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (u *User) NamedPlans(name string) ([]*Plan, error) {
+	if u.Edges.namedPlans == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := u.Edges.namedPlans[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (u *User) appendNamedPlans(name string, edges ...*Plan) {
+	if u.Edges.namedPlans == nil {
+		u.Edges.namedPlans = make(map[string][]*Plan)
+	}
+	if len(edges) == 0 {
+		u.Edges.namedPlans[name] = []*Plan{}
+	} else {
+		u.Edges.namedPlans[name] = append(u.Edges.namedPlans[name], edges...)
+	}
 }
 
 // Users is a parsable slice of User.

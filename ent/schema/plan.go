@@ -23,15 +23,10 @@ func (Plan) Annotations() []schema.Annotation {
 // Fields of the Plan.
 func (Plan) Fields() []ent.Field {
 	return []ent.Field{
-		field.Time("date").Immutable().Annotations(
-			entgql.OrderField("DATE"),
-		),
 		field.Time("created_at").Immutable().Annotations(
 			entgql.OrderField("CREATED_AT"),
 		),
-		field.Time("timestamp").Immutable().Annotations(
-			entgql.OrderField("TIMESTAMP"),
-		),
+		field.Bool("has_conflict").Immutable(),
 		field.String("digest"),
 		field.Text("txt"),
 	}
@@ -41,5 +36,6 @@ func (Plan) Fields() []ent.Field {
 func (Plan) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("author", User.Type).Ref("plans").Unique(),
+		edge.To("next", Plan.Type).Unique().From("prev").Unique(), // O2O Same Type
 	}
 }

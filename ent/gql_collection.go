@@ -30,13 +30,34 @@ func (pl *PlanQuery) collectField(ctx context.Context, op *graphql.OperationCont
 		switch field.Name {
 		case "author":
 			var (
-				path  = append(path, field.Name)
+				alias = field.Alias
+				path  = append(path, alias)
 				query = &UserQuery{config: pl.config}
 			)
 			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
 				return err
 			}
 			pl.withAuthor = query
+		case "prev":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &PlanQuery{config: pl.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pl.withPrev = query
+		case "next":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &PlanQuery{config: pl.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pl.withNext = query
 		}
 	}
 	return nil
@@ -111,7 +132,8 @@ func (u *UserQuery) collectField(ctx context.Context, op *graphql.OperationConte
 		switch field.Name {
 		case "plans":
 			var (
-				path  = append(path, field.Name)
+				alias = field.Alias
+				path  = append(path, alias)
 				query = &PlanQuery{config: u.config}
 			)
 			args := newPlanPaginateArgs(fieldArgs(ctx, new(PlanWhereInput), path...))
@@ -125,8 +147,10 @@ func (u *UserQuery) collectField(ctx context.Context, op *graphql.OperationConte
 			if query, err = pager.applyFilter(query); err != nil {
 				return err
 			}
-			if !hasCollectedField(ctx, append(path, edgesField)...) || args.first != nil && *args.first == 0 || args.last != nil && *args.last == 0 {
-				if hasCollectedField(ctx, append(path, totalCountField)...) || hasCollectedField(ctx, append(path, pageInfoField)...) {
+			ignoredEdges := !hasCollectedField(ctx, append(path, edgesField)...)
+			if hasCollectedField(ctx, append(path, totalCountField)...) || hasCollectedField(ctx, append(path, pageInfoField)...) {
+				hasPagination := args.after != nil || args.first != nil || args.before != nil || args.last != nil
+				if hasPagination || ignoredEdges {
 					query := query.Clone()
 					u.loadTotal = append(u.loadTotal, func(ctx context.Context, nodes []*User) error {
 						ids := make([]driver.Value, len(nodes))
@@ -149,49 +173,30 @@ func (u *UserQuery) collectField(ctx context.Context, op *graphql.OperationConte
 						}
 						for i := range nodes {
 							n := m[nodes[i].ID]
-							nodes[i].Edges.totalCount[0] = &n
+							if nodes[i].Edges.totalCount[0] == nil {
+								nodes[i].Edges.totalCount[0] = make(map[string]int)
+							}
+							nodes[i].Edges.totalCount[0][alias] = n
+						}
+						return nil
+					})
+				} else {
+					u.loadTotal = append(u.loadTotal, func(_ context.Context, nodes []*User) error {
+						for i := range nodes {
+							n := len(nodes[i].Edges.Plans)
+							if nodes[i].Edges.totalCount[0] == nil {
+								nodes[i].Edges.totalCount[0] = make(map[string]int)
+							}
+							nodes[i].Edges.totalCount[0][alias] = n
 						}
 						return nil
 					})
 				}
+			}
+			if ignoredEdges || (args.first != nil && *args.first == 0) || (args.last != nil && *args.last == 0) {
 				continue
 			}
-			if (args.after != nil || args.first != nil || args.before != nil || args.last != nil) && hasCollectedField(ctx, append(path, totalCountField)...) {
-				query := query.Clone()
-				u.loadTotal = append(u.loadTotal, func(ctx context.Context, nodes []*User) error {
-					ids := make([]driver.Value, len(nodes))
-					for i := range nodes {
-						ids[i] = nodes[i].ID
-					}
-					var v []struct {
-						NodeID int `sql:"user_plans"`
-						Count  int `sql:"count"`
-					}
-					query.Where(func(s *sql.Selector) {
-						s.Where(sql.InValues(user.PlansColumn, ids...))
-					})
-					if err := query.GroupBy(user.PlansColumn).Aggregate(Count()).Scan(ctx, &v); err != nil {
-						return err
-					}
-					m := make(map[int]int, len(v))
-					for i := range v {
-						m[v[i].NodeID] = v[i].Count
-					}
-					for i := range nodes {
-						n := m[nodes[i].ID]
-						nodes[i].Edges.totalCount[0] = &n
-					}
-					return nil
-				})
-			} else {
-				u.loadTotal = append(u.loadTotal, func(_ context.Context, nodes []*User) error {
-					for i := range nodes {
-						n := len(nodes[i].Edges.Plans)
-						nodes[i].Edges.totalCount[0] = &n
-					}
-					return nil
-				})
-			}
+
 			query = pager.applyCursors(query, args.after, args.before)
 			if limit := paginateLimit(args.first, args.last); limit > 0 {
 				modify := limitRows(user.PlansColumn, limit, pager.orderExpr(args.last != nil))
@@ -205,7 +210,9 @@ func (u *UserQuery) collectField(ctx context.Context, op *graphql.OperationConte
 					return err
 				}
 			}
-			u.withPlans = query
+			u.WithNamedPlans(alias, func(wq *PlanQuery) {
+				*wq = *query
+			})
 		}
 	}
 	return nil
@@ -260,7 +267,7 @@ func fieldArgs(ctx context.Context, whereInput interface{}, path ...string) map[
 	for _, name := range path {
 		var field *graphql.CollectedField
 		for _, f := range graphql.CollectFields(oc, fc.Field.Selections, nil) {
-			if f.Name == name {
+			if f.Alias == name {
 				field = &f
 				break
 			}
@@ -297,7 +304,7 @@ func unmarshalArgs(ctx context.Context, whereInput interface{}, args map[string]
 		}
 		c := &Cursor{}
 		if c.UnmarshalGQL(v) == nil {
-			args[k] = &c
+			args[k] = c
 		}
 	}
 	if v, ok := args[whereField]; ok && whereInput != nil {

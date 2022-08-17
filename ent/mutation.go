@@ -36,14 +36,17 @@ type PlanMutation struct {
 	op            Op
 	typ           string
 	id            *int
-	date          *time.Time
 	created_at    *time.Time
-	timestamp     *time.Time
+	has_conflict  *bool
 	digest        *string
 	txt           *string
 	clearedFields map[string]struct{}
 	author        *int
 	clearedauthor bool
+	prev          *int
+	clearedprev   bool
+	next          *int
+	clearednext   bool
 	done          bool
 	oldValue      func(context.Context) (*Plan, error)
 	predicates    []predicate.Plan
@@ -147,42 +150,6 @@ func (m *PlanMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
-// SetDate sets the "date" field.
-func (m *PlanMutation) SetDate(t time.Time) {
-	m.date = &t
-}
-
-// Date returns the value of the "date" field in the mutation.
-func (m *PlanMutation) Date() (r time.Time, exists bool) {
-	v := m.date
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDate returns the old "date" field's value of the Plan entity.
-// If the Plan object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanMutation) OldDate(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDate is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDate requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDate: %w", err)
-	}
-	return oldValue.Date, nil
-}
-
-// ResetDate resets all changes to the "date" field.
-func (m *PlanMutation) ResetDate() {
-	m.date = nil
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (m *PlanMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -219,40 +186,40 @@ func (m *PlanMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (m *PlanMutation) SetTimestamp(t time.Time) {
-	m.timestamp = &t
+// SetHasConflict sets the "has_conflict" field.
+func (m *PlanMutation) SetHasConflict(b bool) {
+	m.has_conflict = &b
 }
 
-// Timestamp returns the value of the "timestamp" field in the mutation.
-func (m *PlanMutation) Timestamp() (r time.Time, exists bool) {
-	v := m.timestamp
+// HasConflict returns the value of the "has_conflict" field in the mutation.
+func (m *PlanMutation) HasConflict() (r bool, exists bool) {
+	v := m.has_conflict
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldTimestamp returns the old "timestamp" field's value of the Plan entity.
+// OldHasConflict returns the old "has_conflict" field's value of the Plan entity.
 // If the Plan object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PlanMutation) OldTimestamp(ctx context.Context) (v time.Time, err error) {
+func (m *PlanMutation) OldHasConflict(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTimestamp is only allowed on UpdateOne operations")
+		return v, errors.New("OldHasConflict is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTimestamp requires an ID field in the mutation")
+		return v, errors.New("OldHasConflict requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTimestamp: %w", err)
+		return v, fmt.Errorf("querying old value for OldHasConflict: %w", err)
 	}
-	return oldValue.Timestamp, nil
+	return oldValue.HasConflict, nil
 }
 
-// ResetTimestamp resets all changes to the "timestamp" field.
-func (m *PlanMutation) ResetTimestamp() {
-	m.timestamp = nil
+// ResetHasConflict resets all changes to the "has_conflict" field.
+func (m *PlanMutation) ResetHasConflict() {
+	m.has_conflict = nil
 }
 
 // SetDigest sets the "digest" field.
@@ -366,6 +333,84 @@ func (m *PlanMutation) ResetAuthor() {
 	m.clearedauthor = false
 }
 
+// SetPrevID sets the "prev" edge to the Plan entity by id.
+func (m *PlanMutation) SetPrevID(id int) {
+	m.prev = &id
+}
+
+// ClearPrev clears the "prev" edge to the Plan entity.
+func (m *PlanMutation) ClearPrev() {
+	m.clearedprev = true
+}
+
+// PrevCleared reports if the "prev" edge to the Plan entity was cleared.
+func (m *PlanMutation) PrevCleared() bool {
+	return m.clearedprev
+}
+
+// PrevID returns the "prev" edge ID in the mutation.
+func (m *PlanMutation) PrevID() (id int, exists bool) {
+	if m.prev != nil {
+		return *m.prev, true
+	}
+	return
+}
+
+// PrevIDs returns the "prev" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PrevID instead. It exists only for internal usage by the builders.
+func (m *PlanMutation) PrevIDs() (ids []int) {
+	if id := m.prev; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPrev resets all changes to the "prev" edge.
+func (m *PlanMutation) ResetPrev() {
+	m.prev = nil
+	m.clearedprev = false
+}
+
+// SetNextID sets the "next" edge to the Plan entity by id.
+func (m *PlanMutation) SetNextID(id int) {
+	m.next = &id
+}
+
+// ClearNext clears the "next" edge to the Plan entity.
+func (m *PlanMutation) ClearNext() {
+	m.clearednext = true
+}
+
+// NextCleared reports if the "next" edge to the Plan entity was cleared.
+func (m *PlanMutation) NextCleared() bool {
+	return m.clearednext
+}
+
+// NextID returns the "next" edge ID in the mutation.
+func (m *PlanMutation) NextID() (id int, exists bool) {
+	if m.next != nil {
+		return *m.next, true
+	}
+	return
+}
+
+// NextIDs returns the "next" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// NextID instead. It exists only for internal usage by the builders.
+func (m *PlanMutation) NextIDs() (ids []int) {
+	if id := m.next; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetNext resets all changes to the "next" edge.
+func (m *PlanMutation) ResetNext() {
+	m.next = nil
+	m.clearednext = false
+}
+
 // Where appends a list predicates to the PlanMutation builder.
 func (m *PlanMutation) Where(ps ...predicate.Plan) {
 	m.predicates = append(m.predicates, ps...)
@@ -385,15 +430,12 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 5)
-	if m.date != nil {
-		fields = append(fields, plan.FieldDate)
-	}
+	fields := make([]string, 0, 4)
 	if m.created_at != nil {
 		fields = append(fields, plan.FieldCreatedAt)
 	}
-	if m.timestamp != nil {
-		fields = append(fields, plan.FieldTimestamp)
+	if m.has_conflict != nil {
+		fields = append(fields, plan.FieldHasConflict)
 	}
 	if m.digest != nil {
 		fields = append(fields, plan.FieldDigest)
@@ -409,12 +451,10 @@ func (m *PlanMutation) Fields() []string {
 // schema.
 func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case plan.FieldDate:
-		return m.Date()
 	case plan.FieldCreatedAt:
 		return m.CreatedAt()
-	case plan.FieldTimestamp:
-		return m.Timestamp()
+	case plan.FieldHasConflict:
+		return m.HasConflict()
 	case plan.FieldDigest:
 		return m.Digest()
 	case plan.FieldTxt:
@@ -428,12 +468,10 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case plan.FieldDate:
-		return m.OldDate(ctx)
 	case plan.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case plan.FieldTimestamp:
-		return m.OldTimestamp(ctx)
+	case plan.FieldHasConflict:
+		return m.OldHasConflict(ctx)
 	case plan.FieldDigest:
 		return m.OldDigest(ctx)
 	case plan.FieldTxt:
@@ -447,13 +485,6 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *PlanMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case plan.FieldDate:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDate(v)
-		return nil
 	case plan.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -461,12 +492,12 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case plan.FieldTimestamp:
-		v, ok := value.(time.Time)
+	case plan.FieldHasConflict:
+		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetTimestamp(v)
+		m.SetHasConflict(v)
 		return nil
 	case plan.FieldDigest:
 		v, ok := value.(string)
@@ -531,14 +562,11 @@ func (m *PlanMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *PlanMutation) ResetField(name string) error {
 	switch name {
-	case plan.FieldDate:
-		m.ResetDate()
-		return nil
 	case plan.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case plan.FieldTimestamp:
-		m.ResetTimestamp()
+	case plan.FieldHasConflict:
+		m.ResetHasConflict()
 		return nil
 	case plan.FieldDigest:
 		m.ResetDigest()
@@ -552,9 +580,15 @@ func (m *PlanMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
 	if m.author != nil {
 		edges = append(edges, plan.EdgeAuthor)
+	}
+	if m.prev != nil {
+		edges = append(edges, plan.EdgePrev)
+	}
+	if m.next != nil {
+		edges = append(edges, plan.EdgeNext)
 	}
 	return edges
 }
@@ -567,13 +601,21 @@ func (m *PlanMutation) AddedIDs(name string) []ent.Value {
 		if id := m.author; id != nil {
 			return []ent.Value{*id}
 		}
+	case plan.EdgePrev:
+		if id := m.prev; id != nil {
+			return []ent.Value{*id}
+		}
+	case plan.EdgeNext:
+		if id := m.next; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -587,9 +629,15 @@ func (m *PlanMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
 	if m.clearedauthor {
 		edges = append(edges, plan.EdgeAuthor)
+	}
+	if m.clearedprev {
+		edges = append(edges, plan.EdgePrev)
+	}
+	if m.clearednext {
+		edges = append(edges, plan.EdgeNext)
 	}
 	return edges
 }
@@ -600,6 +648,10 @@ func (m *PlanMutation) EdgeCleared(name string) bool {
 	switch name {
 	case plan.EdgeAuthor:
 		return m.clearedauthor
+	case plan.EdgePrev:
+		return m.clearedprev
+	case plan.EdgeNext:
+		return m.clearednext
 	}
 	return false
 }
@@ -611,6 +663,12 @@ func (m *PlanMutation) ClearEdge(name string) error {
 	case plan.EdgeAuthor:
 		m.ClearAuthor()
 		return nil
+	case plan.EdgePrev:
+		m.ClearPrev()
+		return nil
+	case plan.EdgeNext:
+		m.ClearNext()
+		return nil
 	}
 	return fmt.Errorf("unknown Plan unique edge %s", name)
 }
@@ -621,6 +679,12 @@ func (m *PlanMutation) ResetEdge(name string) error {
 	switch name {
 	case plan.EdgeAuthor:
 		m.ResetAuthor()
+		return nil
+	case plan.EdgePrev:
+		m.ResetPrev()
+		return nil
+	case plan.EdgeNext:
+		m.ResetNext()
 		return nil
 	}
 	return fmt.Errorf("unknown Plan edge %s", name)

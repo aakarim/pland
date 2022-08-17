@@ -7,18 +7,20 @@ const (
 	Label = "plan"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldDate holds the string denoting the date field in the database.
-	FieldDate = "date"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
-	// FieldTimestamp holds the string denoting the timestamp field in the database.
-	FieldTimestamp = "timestamp"
+	// FieldHasConflict holds the string denoting the has_conflict field in the database.
+	FieldHasConflict = "has_conflict"
 	// FieldDigest holds the string denoting the digest field in the database.
 	FieldDigest = "digest"
 	// FieldTxt holds the string denoting the txt field in the database.
 	FieldTxt = "txt"
 	// EdgeAuthor holds the string denoting the author edge name in mutations.
 	EdgeAuthor = "author"
+	// EdgePrev holds the string denoting the prev edge name in mutations.
+	EdgePrev = "prev"
+	// EdgeNext holds the string denoting the next edge name in mutations.
+	EdgeNext = "next"
 	// Table holds the table name of the plan in the database.
 	Table = "plans"
 	// AuthorTable is the table that holds the author relation/edge.
@@ -28,14 +30,21 @@ const (
 	AuthorInverseTable = "charm_user"
 	// AuthorColumn is the table column denoting the author relation/edge.
 	AuthorColumn = "user_plans"
+	// PrevTable is the table that holds the prev relation/edge.
+	PrevTable = "plans"
+	// PrevColumn is the table column denoting the prev relation/edge.
+	PrevColumn = "plan_next"
+	// NextTable is the table that holds the next relation/edge.
+	NextTable = "plans"
+	// NextColumn is the table column denoting the next relation/edge.
+	NextColumn = "plan_next"
 )
 
 // Columns holds all SQL columns for plan fields.
 var Columns = []string{
 	FieldID,
-	FieldDate,
 	FieldCreatedAt,
-	FieldTimestamp,
+	FieldHasConflict,
 	FieldDigest,
 	FieldTxt,
 }
@@ -43,6 +52,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "plans"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
+	"plan_next",
 	"user_plans",
 }
 

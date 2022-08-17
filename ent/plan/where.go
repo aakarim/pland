@@ -81,13 +81,6 @@ func IDLTE(id int) predicate.Plan {
 	})
 }
 
-// Date applies equality check predicate on the "date" field. It's identical to DateEQ.
-func Date(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldDate), v))
-	})
-}
-
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {
@@ -95,10 +88,10 @@ func CreatedAt(v time.Time) predicate.Plan {
 	})
 }
 
-// Timestamp applies equality check predicate on the "timestamp" field. It's identical to TimestampEQ.
-func Timestamp(v time.Time) predicate.Plan {
+// HasConflict applies equality check predicate on the "has_conflict" field. It's identical to HasConflictEQ.
+func HasConflict(v bool) predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldTimestamp), v))
+		s.Where(sql.EQ(s.C(FieldHasConflict), v))
 	})
 }
 
@@ -113,82 +106,6 @@ func Digest(v string) predicate.Plan {
 func Txt(v string) predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldTxt), v))
-	})
-}
-
-// DateEQ applies the EQ predicate on the "date" field.
-func DateEQ(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldDate), v))
-	})
-}
-
-// DateNEQ applies the NEQ predicate on the "date" field.
-func DateNEQ(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldDate), v))
-	})
-}
-
-// DateIn applies the In predicate on the "date" field.
-func DateIn(vs ...time.Time) predicate.Plan {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.In(s.C(FieldDate), v...))
-	})
-}
-
-// DateNotIn applies the NotIn predicate on the "date" field.
-func DateNotIn(vs ...time.Time) predicate.Plan {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.NotIn(s.C(FieldDate), v...))
-	})
-}
-
-// DateGT applies the GT predicate on the "date" field.
-func DateGT(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldDate), v))
-	})
-}
-
-// DateGTE applies the GTE predicate on the "date" field.
-func DateGTE(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldDate), v))
-	})
-}
-
-// DateLT applies the LT predicate on the "date" field.
-func DateLT(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldDate), v))
-	})
-}
-
-// DateLTE applies the LTE predicate on the "date" field.
-func DateLTE(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldDate), v))
 	})
 }
 
@@ -213,12 +130,6 @@ func CreatedAtIn(vs ...time.Time) predicate.Plan {
 		v[i] = vs[i]
 	}
 	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldCreatedAt), v...))
 	})
 }
@@ -230,12 +141,6 @@ func CreatedAtNotIn(vs ...time.Time) predicate.Plan {
 		v[i] = vs[i]
 	}
 	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldCreatedAt), v...))
 	})
 }
@@ -268,79 +173,17 @@ func CreatedAtLTE(v time.Time) predicate.Plan {
 	})
 }
 
-// TimestampEQ applies the EQ predicate on the "timestamp" field.
-func TimestampEQ(v time.Time) predicate.Plan {
+// HasConflictEQ applies the EQ predicate on the "has_conflict" field.
+func HasConflictEQ(v bool) predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldTimestamp), v))
+		s.Where(sql.EQ(s.C(FieldHasConflict), v))
 	})
 }
 
-// TimestampNEQ applies the NEQ predicate on the "timestamp" field.
-func TimestampNEQ(v time.Time) predicate.Plan {
+// HasConflictNEQ applies the NEQ predicate on the "has_conflict" field.
+func HasConflictNEQ(v bool) predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldTimestamp), v))
-	})
-}
-
-// TimestampIn applies the In predicate on the "timestamp" field.
-func TimestampIn(vs ...time.Time) predicate.Plan {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.In(s.C(FieldTimestamp), v...))
-	})
-}
-
-// TimestampNotIn applies the NotIn predicate on the "timestamp" field.
-func TimestampNotIn(vs ...time.Time) predicate.Plan {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
-		s.Where(sql.NotIn(s.C(FieldTimestamp), v...))
-	})
-}
-
-// TimestampGT applies the GT predicate on the "timestamp" field.
-func TimestampGT(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldTimestamp), v))
-	})
-}
-
-// TimestampGTE applies the GTE predicate on the "timestamp" field.
-func TimestampGTE(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldTimestamp), v))
-	})
-}
-
-// TimestampLT applies the LT predicate on the "timestamp" field.
-func TimestampLT(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldTimestamp), v))
-	})
-}
-
-// TimestampLTE applies the LTE predicate on the "timestamp" field.
-func TimestampLTE(v time.Time) predicate.Plan {
-	return predicate.Plan(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldTimestamp), v))
+		s.Where(sql.NEQ(s.C(FieldHasConflict), v))
 	})
 }
 
@@ -365,12 +208,6 @@ func DigestIn(vs ...string) predicate.Plan {
 		v[i] = vs[i]
 	}
 	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldDigest), v...))
 	})
 }
@@ -382,12 +219,6 @@ func DigestNotIn(vs ...string) predicate.Plan {
 		v[i] = vs[i]
 	}
 	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldDigest), v...))
 	})
 }
@@ -476,12 +307,6 @@ func TxtIn(vs ...string) predicate.Plan {
 		v[i] = vs[i]
 	}
 	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldTxt), v...))
 	})
 }
@@ -493,12 +318,6 @@ func TxtNotIn(vs ...string) predicate.Plan {
 		v[i] = vs[i]
 	}
 	return predicate.Plan(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldTxt), v...))
 	})
 }
@@ -585,6 +404,62 @@ func HasAuthorWith(preds ...predicate.User) predicate.Plan {
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AuthorInverseTable, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, AuthorTable, AuthorColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPrev applies the HasEdge predicate on the "prev" edge.
+func HasPrev() predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(PrevTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, PrevTable, PrevColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPrevWith applies the HasEdge predicate on the "prev" edge with a given conditions (other predicates).
+func HasPrevWith(preds ...predicate.Plan) predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, PrevTable, PrevColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNext applies the HasEdge predicate on the "next" edge.
+func HasNext() predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(NextTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, NextTable, NextColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNextWith applies the HasEdge predicate on the "next" edge with a given conditions (other predicates).
+func HasNextWith(preds ...predicate.Plan) predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, NextTable, NextColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

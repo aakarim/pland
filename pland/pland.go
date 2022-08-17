@@ -44,17 +44,15 @@ func (p program) Start(s service.Service) error {
 				}
 				log.Println("event:", event)
 				log.Println("modified file:", event.Name)
-				if event.Op == fsnotify.Write {
-					c := exec.CommandContext(p.baseCtx, os.Args[4], "sync")
-					c.Env = []string{
-						"CHARM_HOST=" + os.Args[2],
-						"HOME=" + p.homeDir,
-					}
-					c.Stdout = os.Stdout
-					c.Stderr = os.Stderr
-					if err := c.Run(); err != nil {
-						log.Println("plan error:", err)
-					}
+				c := exec.CommandContext(p.baseCtx, os.Args[4], "sync")
+				c.Env = []string{
+					"CHARM_HOST=" + os.Args[2],
+					"HOME=" + p.homeDir,
+				}
+				c.Stdout = os.Stdout
+				c.Stderr = os.Stderr
+				if err := c.Run(); err != nil {
+					log.Println("plan error:", err)
 				}
 			case err, ok := <-p.watcher.Errors:
 				if !ok {

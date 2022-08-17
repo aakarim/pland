@@ -33,7 +33,7 @@ func TestParse(t *testing.T) {
 			name: "with only days",
 			args: args{
 				ctx: context.Background(),
-				planFile: `> plan.day/2022-08-14
+				planFile: `# plan.day/2022-08-14
 
 - [x] Read Part II of PLG Onboarding
 `,
@@ -72,12 +72,12 @@ func TestParse(t *testing.T) {
 			name: "with header token",
 			args: args{
 				ctx: context.Background(),
-				planFile: `> plan.header
+				planFile: `# plan.header
 
 		Hi! This is my == plan file. 😀✍ ==
 
 		---
-		> plan.day/2022-08-14
+		# plan.day/2022-08-14
 
 		- [x] Read Part II of PLG Onboarding
 		- [x] Study Org mode
@@ -86,7 +86,7 @@ func TestParse(t *testing.T) {
 			},
 			want: &PlanFile{
 				Header: Header{
-					token: `> plan.header`,
+					token: `# plan.header`,
 					Contents: `Hi! This is my == plan file. 😀✍ ==
 
 		---`,
@@ -106,17 +106,17 @@ func TestParse(t *testing.T) {
 			name: "forwards compatability",
 			args: args{
 				ctx: context.Background(),
-				planFile: `> plan.header
+				planFile: `# plan.header
 
 		Hi! This is my == plan file. 😀✍ ==
 
 		---
-		> plan.project/lix
+		# plan.project/lix
 
 		- [ ] Read stuff
 
 		---
-		> plan.day/2022-08-14
+		# plan.day/2022-08-14
 
 		- [x] Read Part II of PLG Onboarding
 		- [x] Study Org mode
@@ -124,7 +124,7 @@ func TestParse(t *testing.T) {
 			},
 			want: &PlanFile{
 				Header: Header{
-					token: `> plan.header`,
+					token: `# plan.header`,
 					Contents: `Hi! This is my == plan file. 😀✍ ==
 
 		---`,
@@ -142,6 +142,7 @@ func TestParse(t *testing.T) {
 						Contents: `- [ ] Read stuff
 
 		---`,
+						token: "# plan.project/lix",
 					},
 				},
 			},
@@ -178,6 +179,5 @@ func TestParse(t *testing.T) {
 				t.Errorf("ArbitrarySections = %v, want %v", got.ArbitrarySections, tt.want.ArbitrarySections)
 			}
 		})
-		// break // TODO: remove
 	}
 }

@@ -21,21 +21,15 @@ type PlanCreate struct {
 	hooks    []Hook
 }
 
-// SetDate sets the "date" field.
-func (pc *PlanCreate) SetDate(t time.Time) *PlanCreate {
-	pc.mutation.SetDate(t)
-	return pc
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (pc *PlanCreate) SetCreatedAt(t time.Time) *PlanCreate {
 	pc.mutation.SetCreatedAt(t)
 	return pc
 }
 
-// SetTimestamp sets the "timestamp" field.
-func (pc *PlanCreate) SetTimestamp(t time.Time) *PlanCreate {
-	pc.mutation.SetTimestamp(t)
+// SetHasConflict sets the "has_conflict" field.
+func (pc *PlanCreate) SetHasConflict(b bool) *PlanCreate {
+	pc.mutation.SetHasConflict(b)
 	return pc
 }
 
@@ -68,6 +62,44 @@ func (pc *PlanCreate) SetNillableAuthorID(id *int) *PlanCreate {
 // SetAuthor sets the "author" edge to the User entity.
 func (pc *PlanCreate) SetAuthor(u *User) *PlanCreate {
 	return pc.SetAuthorID(u.ID)
+}
+
+// SetPrevID sets the "prev" edge to the Plan entity by ID.
+func (pc *PlanCreate) SetPrevID(id int) *PlanCreate {
+	pc.mutation.SetPrevID(id)
+	return pc
+}
+
+// SetNillablePrevID sets the "prev" edge to the Plan entity by ID if the given value is not nil.
+func (pc *PlanCreate) SetNillablePrevID(id *int) *PlanCreate {
+	if id != nil {
+		pc = pc.SetPrevID(*id)
+	}
+	return pc
+}
+
+// SetPrev sets the "prev" edge to the Plan entity.
+func (pc *PlanCreate) SetPrev(p *Plan) *PlanCreate {
+	return pc.SetPrevID(p.ID)
+}
+
+// SetNextID sets the "next" edge to the Plan entity by ID.
+func (pc *PlanCreate) SetNextID(id int) *PlanCreate {
+	pc.mutation.SetNextID(id)
+	return pc
+}
+
+// SetNillableNextID sets the "next" edge to the Plan entity by ID if the given value is not nil.
+func (pc *PlanCreate) SetNillableNextID(id *int) *PlanCreate {
+	if id != nil {
+		pc = pc.SetNextID(*id)
+	}
+	return pc
+}
+
+// SetNext sets the "next" edge to the Plan entity.
+func (pc *PlanCreate) SetNext(p *Plan) *PlanCreate {
+	return pc.SetNextID(p.ID)
 }
 
 // Mutation returns the PlanMutation object of the builder.
@@ -146,14 +178,11 @@ func (pc *PlanCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (pc *PlanCreate) check() error {
-	if _, ok := pc.mutation.Date(); !ok {
-		return &ValidationError{Name: "date", err: errors.New(`ent: missing required field "Plan.date"`)}
-	}
 	if _, ok := pc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Plan.created_at"`)}
 	}
-	if _, ok := pc.mutation.Timestamp(); !ok {
-		return &ValidationError{Name: "timestamp", err: errors.New(`ent: missing required field "Plan.timestamp"`)}
+	if _, ok := pc.mutation.HasConflict(); !ok {
+		return &ValidationError{Name: "has_conflict", err: errors.New(`ent: missing required field "Plan.has_conflict"`)}
 	}
 	if _, ok := pc.mutation.Digest(); !ok {
 		return &ValidationError{Name: "digest", err: errors.New(`ent: missing required field "Plan.digest"`)}
@@ -188,14 +217,6 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
-	if value, ok := pc.mutation.Date(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: plan.FieldDate,
-		})
-		_node.Date = value
-	}
 	if value, ok := pc.mutation.CreatedAt(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
@@ -204,13 +225,13 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 		})
 		_node.CreatedAt = value
 	}
-	if value, ok := pc.mutation.Timestamp(); ok {
+	if value, ok := pc.mutation.HasConflict(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
+			Type:   field.TypeBool,
 			Value:  value,
-			Column: plan.FieldTimestamp,
+			Column: plan.FieldHasConflict,
 		})
-		_node.Timestamp = value
+		_node.HasConflict = value
 	}
 	if value, ok := pc.mutation.Digest(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
@@ -246,6 +267,45 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_plans = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.PrevIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   plan.PrevTable,
+			Columns: []string{plan.PrevColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: plan.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.plan_next = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.NextIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   plan.NextTable,
+			Columns: []string{plan.NextColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: plan.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

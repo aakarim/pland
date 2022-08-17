@@ -43,7 +43,11 @@ func main() {
 	}
 	defer client.Close()
 	// Run the auto migration tool.
-	if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
+	if err := client.Schema.Create(context.Background(),
+		migrate.WithGlobalUniqueID(true),
+		migrate.WithDropColumn(true), // TODO: remove in prod
+		migrate.WithDropIndex(true),  // TODO: remove in prod?
+	); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 

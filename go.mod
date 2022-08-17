@@ -3,19 +3,23 @@ module github.com/aakarim/pland
 go 1.18
 
 require (
-	entgo.io/ent v0.11.1
+	entgo.io/contrib v0.3.1
+	entgo.io/ent v0.11.2-0.20220724154107-b60e0f9eac27
 	github.com/99designs/gqlgen v0.17.5-0.20220428154617-9250f9ac1f90
 	github.com/Khan/genqlient v0.5.0
 	github.com/auth0/go-jwt-middleware/v2 v2.0.0-beta
-	github.com/cespare/xxhash/v2 v2.1.2
+	github.com/cespare/xxhash v1.1.0
 	github.com/charmbracelet/bubbles v0.10.3
 	github.com/charmbracelet/bubbletea v0.21.1-0.20220623121936-ca32c4c62873
 	github.com/charmbracelet/charm v0.12.1
 	github.com/charmbracelet/keygen v0.3.0
 	github.com/charmbracelet/lipgloss v0.5.1-0.20220407020210-a86f21a0ae43
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hexops/gotextdiff v1.0.3
+	github.com/kardianos/service v1.2.1
 	github.com/magefile/mage v1.13.0
 	github.com/muesli/reflow v0.3.0
 	github.com/sergi/go-diff v1.1.0
@@ -29,7 +33,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.5.0 // indirect
+	ariga.io/atlas v0.5.1-0.20220724111820-d9260fa9f065 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alexflint/go-arg v1.4.2 // indirect
@@ -45,7 +49,6 @@ require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -56,7 +59,6 @@ require (
 	github.com/hashicorp/hcl/v2 v2.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115 // indirect
-	github.com/kardianos/service v1.2.1 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/matryer/moq v0.2.7 // indirect

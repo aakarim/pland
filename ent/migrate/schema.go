@@ -12,11 +12,11 @@ var (
 	// PlansColumns holds the columns for the "plans" table.
 	PlansColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "date", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "timestamp", Type: field.TypeTime},
+		{Name: "has_conflict", Type: field.TypeBool},
 		{Name: "digest", Type: field.TypeString},
 		{Name: "txt", Type: field.TypeString, Size: 2147483647},
+		{Name: "plan_next", Type: field.TypeInt, Unique: true, Nullable: true},
 		{Name: "user_plans", Type: field.TypeInt, Nullable: true},
 	}
 	// PlansTable holds the schema information for the "plans" table.
@@ -25,6 +25,12 @@ var (
 		Columns:    PlansColumns,
 		PrimaryKey: []*schema.Column{PlansColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "plans_plans_next",
+				Columns:    []*schema.Column{PlansColumns[5]},
+				RefColumns: []*schema.Column{PlansColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
 			{
 				Symbol:     "plans_charm_user_plans",
 				Columns:    []*schema.Column{PlansColumns[6]},
@@ -56,7 +62,8 @@ var (
 )
 
 func init() {
-	PlansTable.ForeignKeys[0].RefTable = CharmUserTable
+	PlansTable.ForeignKeys[0].RefTable = PlansTable
+	PlansTable.ForeignKeys[1].RefTable = CharmUserTable
 	CharmUserTable.Annotation = &entsql.Annotation{
 		Table: "charm_user",
 	}

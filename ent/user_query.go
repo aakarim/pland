@@ -19,16 +19,16 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.User
-	// eager-loading edges.
-	withPlans *PlanQuery
-	modifiers []func(*sql.Selector)
-	loadTotal []func(context.Context, []*User) error
+	limit          *int
+	offset         *int
+	unique         *bool
+	order          []OrderFunc
+	fields         []string
+	predicates     []predicate.User
+	withPlans      *PlanQuery
+	modifiers      []func(*sql.Selector)
+	loadTotal      []func(context.Context, []*User) error
+	withNamedPlans map[string]*PlanQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -382,42 +382,58 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-
 	if query := uq.withPlans; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[int]*User)
-		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
-			nodes[i].Edges.Plans = []*Plan{}
-		}
-		query.withFKs = true
-		query.Where(predicate.Plan(func(s *sql.Selector) {
-			s.Where(sql.InValues(user.PlansColumn, fks...))
-		}))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := uq.loadPlans(ctx, query, nodes,
+			func(n *User) { n.Edges.Plans = []*Plan{} },
+			func(n *User, e *Plan) { n.Edges.Plans = append(n.Edges.Plans, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			fk := n.user_plans
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "user_plans" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_plans" returned %v for node %v`, *fk, n.ID)
-			}
-			node.Edges.Plans = append(node.Edges.Plans, n)
+	}
+	for name, query := range uq.withNamedPlans {
+		if err := uq.loadPlans(ctx, query, nodes,
+			func(n *User) { n.appendNamedPlans(name) },
+			func(n *User, e *Plan) { n.appendNamedPlans(name, e) }); err != nil {
+			return nil, err
 		}
 	}
-
 	for i := range uq.loadTotal {
 		if err := uq.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
+}
+
+func (uq *UserQuery) loadPlans(ctx context.Context, query *PlanQuery, nodes []*User, init func(*User), assign func(*User, *Plan)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Plan(func(s *sql.Selector) {
+		s.Where(sql.InValues(user.PlansColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_plans
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_plans" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_plans" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (uq *UserQuery) sqlCount(ctx context.Context) (int, error) {
@@ -518,6 +534,20 @@ func (uq *UserQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// WithNamedPlans tells the query-builder to eager-load the nodes that are connected to the "plans"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithNamedPlans(name string, opts ...func(*PlanQuery)) *UserQuery {
+	query := &PlanQuery{config: uq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if uq.withNamedPlans == nil {
+		uq.withNamedPlans = make(map[string]*PlanQuery)
+	}
+	uq.withNamedPlans[name] = query
+	return uq
 }
 
 // UserGroupBy is the group-by builder for User entities.

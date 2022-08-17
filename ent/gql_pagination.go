@@ -208,7 +208,7 @@ func collectedField(ctx context.Context, path ...string) *graphql.CollectedField
 walk:
 	for _, name := range path {
 		for _, f := range graphql.CollectFields(oc, field.Selections, nil) {
-			if f.Name == name {
+			if f.Alias == name {
 				field = f
 				continue walk
 			}
@@ -405,23 +405,19 @@ func (pl *PlanQuery) Paginate(
 		return nil, err
 	}
 	conn := &PlanConnection{Edges: []*PlanEdge{}}
-	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
-		if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+	ignoredEdges := !hasCollectedField(ctx, edgesField)
+	if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+		hasPagination := after != nil || first != nil || before != nil || last != nil
+		if hasPagination || ignoredEdges {
 			if conn.TotalCount, err = pl.Count(ctx); err != nil {
 				return nil, err
 			}
 			conn.PageInfo.HasNextPage = first != nil && conn.TotalCount > 0
 			conn.PageInfo.HasPreviousPage = last != nil && conn.TotalCount > 0
 		}
-		return conn, nil
 	}
-
-	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
-		count, err := pl.Clone().Count(ctx)
-		if err != nil {
-			return nil, err
-		}
-		conn.TotalCount = count
+	if ignoredEdges || (first != nil && *first == 0) || (last != nil && *last == 0) {
+		return conn, nil
 	}
 
 	pl = pager.applyCursors(pl, after, before)
@@ -436,24 +432,14 @@ func (pl *PlanQuery) Paginate(
 	}
 
 	nodes, err := pl.All(ctx)
-	if err != nil || len(nodes) == 0 {
-		return conn, err
+	if err != nil {
+		return nil, err
 	}
 	conn.build(nodes, pager, after, first, before, last)
 	return conn, nil
 }
 
 var (
-	// PlanOrderFieldDate orders Plan by date.
-	PlanOrderFieldDate = &PlanOrderField{
-		field: plan.FieldDate,
-		toCursor: func(pl *Plan) Cursor {
-			return Cursor{
-				ID:    pl.ID,
-				Value: pl.Date,
-			}
-		},
-	}
 	// PlanOrderFieldCreatedAt orders Plan by created_at.
 	PlanOrderFieldCreatedAt = &PlanOrderField{
 		field: plan.FieldCreatedAt,
@@ -464,28 +450,14 @@ var (
 			}
 		},
 	}
-	// PlanOrderFieldTimestamp orders Plan by timestamp.
-	PlanOrderFieldTimestamp = &PlanOrderField{
-		field: plan.FieldTimestamp,
-		toCursor: func(pl *Plan) Cursor {
-			return Cursor{
-				ID:    pl.ID,
-				Value: pl.Timestamp,
-			}
-		},
-	}
 )
 
 // String implement fmt.Stringer interface.
 func (f PlanOrderField) String() string {
 	var str string
 	switch f.field {
-	case plan.FieldDate:
-		str = "DATE"
 	case plan.FieldCreatedAt:
 		str = "CREATED_AT"
-	case plan.FieldTimestamp:
-		str = "TIMESTAMP"
 	}
 	return str
 }
@@ -502,12 +474,8 @@ func (f *PlanOrderField) UnmarshalGQL(v interface{}) error {
 		return fmt.Errorf("PlanOrderField %T must be a string", v)
 	}
 	switch str {
-	case "DATE":
-		*f = *PlanOrderFieldDate
 	case "CREATED_AT":
 		*f = *PlanOrderFieldCreatedAt
-	case "TIMESTAMP":
-		*f = *PlanOrderFieldTimestamp
 	default:
 		return fmt.Errorf("%s is not a valid PlanOrderField", str)
 	}
@@ -711,23 +679,19 @@ func (u *UserQuery) Paginate(
 		return nil, err
 	}
 	conn := &UserConnection{Edges: []*UserEdge{}}
-	if !hasCollectedField(ctx, edgesField) || first != nil && *first == 0 || last != nil && *last == 0 {
-		if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+	ignoredEdges := !hasCollectedField(ctx, edgesField)
+	if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+		hasPagination := after != nil || first != nil || before != nil || last != nil
+		if hasPagination || ignoredEdges {
 			if conn.TotalCount, err = u.Count(ctx); err != nil {
 				return nil, err
 			}
 			conn.PageInfo.HasNextPage = first != nil && conn.TotalCount > 0
 			conn.PageInfo.HasPreviousPage = last != nil && conn.TotalCount > 0
 		}
-		return conn, nil
 	}
-
-	if (after != nil || first != nil || before != nil || last != nil) && hasCollectedField(ctx, totalCountField) {
-		count, err := u.Clone().Count(ctx)
-		if err != nil {
-			return nil, err
-		}
-		conn.TotalCount = count
+	if ignoredEdges || (first != nil && *first == 0) || (last != nil && *last == 0) {
+		return conn, nil
 	}
 
 	u = pager.applyCursors(u, after, before)
@@ -742,8 +706,8 @@ func (u *UserQuery) Paginate(
 	}
 
 	nodes, err := u.All(ctx)
-	if err != nil || len(nodes) == 0 {
-		return conn, err
+	if err != nil {
+		return nil, err
 	}
 	conn.build(nodes, pager, after, first, before, last)
 	return conn, nil

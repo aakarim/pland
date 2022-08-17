@@ -33,6 +33,14 @@ func (pc *PlanCreate) SetHasConflict(b bool) *PlanCreate {
 	return pc
 }
 
+// SetNillableHasConflict sets the "has_conflict" field if the given value is not nil.
+func (pc *PlanCreate) SetNillableHasConflict(b *bool) *PlanCreate {
+	if b != nil {
+		pc.SetHasConflict(*b)
+	}
+	return pc
+}
+
 // SetDigest sets the "digest" field.
 func (pc *PlanCreate) SetDigest(s string) *PlanCreate {
 	pc.mutation.SetDigest(s)
@@ -113,6 +121,7 @@ func (pc *PlanCreate) Save(ctx context.Context) (*Plan, error) {
 		err  error
 		node *Plan
 	)
+	pc.defaults()
 	if len(pc.hooks) == 0 {
 		if err = pc.check(); err != nil {
 			return nil, err
@@ -173,6 +182,14 @@ func (pc *PlanCreate) Exec(ctx context.Context) error {
 func (pc *PlanCreate) ExecX(ctx context.Context) {
 	if err := pc.Exec(ctx); err != nil {
 		panic(err)
+	}
+}
+
+// defaults sets the default values of the builder before save.
+func (pc *PlanCreate) defaults() {
+	if _, ok := pc.mutation.HasConflict(); !ok {
+		v := plan.DefaultHasConflict
+		pc.mutation.SetHasConflict(v)
 	}
 }
 
@@ -325,6 +342,7 @@ func (pcb *PlanCreateBulk) Save(ctx context.Context) ([]*Plan, error) {
 	for i := range pcb.builders {
 		func(i int, root context.Context) {
 			builder := pcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*PlanMutation)
 				if !ok {

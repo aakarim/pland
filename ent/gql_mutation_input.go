@@ -9,7 +9,7 @@ import (
 // CreatePlanInput represents a mutation input for creating plans.
 type CreatePlanInput struct {
 	CreatedAt   time.Time
-	HasConflict bool
+	HasConflict *bool
 	Digest      string
 	Txt         string
 	AuthorID    *int
@@ -20,7 +20,9 @@ type CreatePlanInput struct {
 // Mutate applies the CreatePlanInput on the PlanMutation builder.
 func (i *CreatePlanInput) Mutate(m *PlanMutation) {
 	m.SetCreatedAt(i.CreatedAt)
-	m.SetHasConflict(i.HasConflict)
+	if v := i.HasConflict; v != nil {
+		m.SetHasConflict(*v)
+	}
 	m.SetDigest(i.Digest)
 	m.SetTxt(i.Txt)
 	if v := i.AuthorID; v != nil {

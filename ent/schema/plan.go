@@ -26,7 +26,7 @@ func (Plan) Fields() []ent.Field {
 		field.Time("created_at").Immutable().Annotations(
 			entgql.OrderField("CREATED_AT"),
 		),
-		field.Bool("has_conflict").Immutable(),
+		field.Bool("has_conflict").Immutable().Default(false),
 		field.String("digest"),
 		field.Text("txt"),
 	}

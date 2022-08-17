@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/schema"
 	"github.com/aakarim/pland/ent/user"
 )
@@ -13,6 +14,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	planFields := schema.Plan{}.Fields()
+	_ = planFields
+	// planDescHasConflict is the schema descriptor for has_conflict field.
+	planDescHasConflict := planFields[1].Descriptor()
+	// plan.DefaultHasConflict holds the default value on creation for the has_conflict field.
+	plan.DefaultHasConflict = planDescHasConflict.Default.(bool)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescBio is the schema descriptor for bio field.

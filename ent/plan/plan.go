@@ -70,3 +70,8 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultHasConflict holds the default value on creation for the "has_conflict" field.
+	DefaultHasConflict bool
+)

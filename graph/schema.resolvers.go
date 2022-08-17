@@ -37,11 +37,6 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	if err != nil && !noTail {
 		return nil, fmt.Errorf("could not get tail: %w", err)
 	}
-	// if they don't match then we need to do a merge
-	tailPrev, err := tail.Prev(ctx)
-	if err != nil && !ent.IsNotFound(err) {
-		return nil, fmt.Errorf("tail.Prev: %w", err)
-	}
 	// if no tail then this is the first one
 	if noTail {
 		tail, err := r.Client.Plan.Create().
@@ -54,6 +49,11 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 			return nil, fmt.Errorf("could not save plan: %w", err)
 		}
 		return tail, nil
+	}
+	// if they don't match then we need to do a merge
+	tailPrev, err := tail.Prev(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("tail.Prev: %w", err)
 	}
 	// this is second one, no conflict
 	if tailPrev == nil {

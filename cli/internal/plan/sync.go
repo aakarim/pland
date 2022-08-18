@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
@@ -61,7 +62,11 @@ func (p *PlanService) Sync() (conflict bool, err error) {
 	conflict = resp.CreatePlan.HasConflict
 	// if the created plan's parent is different then we hae a new version and overwrite
 	// the digest includes the parent, so it will be diferent if parents are different
-	if resp.CreatePlan.Digest != homePlan.Digest() {
+	serverParentVersion, err := strconv.Atoi(resp.CreatePlan.Prev.Id)
+	if err != nil {
+		return false, fmt.Errorf("parsing version: %w", err)
+	}
+	if serverParentVersion != homePlan.ParentVersion {
 		log.Println("local file is old, replacing with server version...")
 		// write to an 'old' file first as backup
 		overwriteF, err := os.Create(homePlanPath)

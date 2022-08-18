@@ -1,3 +1,6 @@
+# How to edit your .plan
+A .plan file is a text file with a few special tokens that allow it to be understood by our servers. You can consider it like a .txt and can open it with any text editor.
+
 # Editor support
 ## Vi(m)
 ### Background updating

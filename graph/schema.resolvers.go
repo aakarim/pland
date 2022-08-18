@@ -80,18 +80,20 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 			return nil, fmt.Errorf("could not diff: %w", err)
 		}
 	}
-	// save plan file
-	p.ParentVersion = tail.ID
-	tail, err = r.Client.Plan.Create().
-		SetAuthor(user).
-		SetDigest(p.Digest()).
-		SetCreatedAt(time.Now()).
-		SetHasConflict(p.HasConflicts).
-		SetPrev(tail).
-		SetTxt(p.String()).
-		Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("could not save plan: %w", err)
+	if tail.Digest != p.Digest() {
+		// save plan file
+		p.ParentVersion = tail.ID
+		tail, err = r.Client.Plan.Create().
+			SetAuthor(user).
+			SetDigest(p.Digest()).
+			SetCreatedAt(time.Now()).
+			SetHasConflict(p.HasConflicts).
+			SetPrev(tail).
+			SetTxt(p.String()).
+			Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not save plan: %w", err)
+		}
 	}
 	// TODO: build new derived data from plan/ fire event
 	return tail, nil

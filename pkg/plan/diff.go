@@ -17,8 +17,8 @@ func makeConflictSection(diff string) string {
 func prettyDiff(str1, str2 string) string {
 	finalStr := []string{}
 
-	// at the moment we only check for exact equality
-	if str1 == str2 {
+	// ignore leading and trailing whitespace
+	if strings.TrimSpace(str1) == strings.TrimSpace(str2) {
 		return ""
 	}
 	finalStr = append(finalStr, ">>>> Local copy")

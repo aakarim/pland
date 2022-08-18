@@ -28,24 +28,6 @@ func prettyDiff(str1, str2 string) string {
 	return strings.Join(finalStr, "\n")
 }
 
-// func prettyDiff(str1, str2 string) string {
-// 	finalStr := []string{}
-// 	dmp := diffmatchpatch.New()
-
-// 	diffs := dmp.DiffMain(str1, str2, false)
-// 	for _, v := range diffs {
-// 		switch v.Type {
-// 		case diffmatchpatch.DiffEqual:
-// 			finalStr = append(finalStr, v.Text)
-// 		case diffmatchpatch.DiffDelete:
-// 			finalStr = append(finalStr, "B > "+v.Text)
-// 		case diffmatchpatch.DiffInsert:
-// 			finalStr = append(finalStr, "A > "+v.Text)
-// 		}
-// 	}
-// 	return strings.Join(finalStr, "")
-// }
-
 // Diff diffs each known section of the .plan file and outputs the diff in the contents. It has no idea which one is 'correct'
 // so it sets no version number.
 //

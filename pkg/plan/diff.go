@@ -105,6 +105,9 @@ func Diff(p1 *PlanFile, p2 *PlanFile) (*PlanFile, error) {
 	for i := len(mostRecent.Days) - 1; i >= 0; i-- {
 		mostRecentDay := mostRecent.Days[i]
 		leastRecentContents := ""
+		if lenDiff < 0 {
+			lenDiff = -lenDiff
+		}
 		if i-lenDiff > 0 {
 			leastRecentContents = leastRecent.Days[i-lenDiff].Contents
 		}

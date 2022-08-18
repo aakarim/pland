@@ -23,6 +23,13 @@ func Test_prettyDiff(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			args: args{
+				str1: "hello\nthis\nis\nmy\nname",
+				str2: "hello\nthis\nis\nmy\nface",
+			},
+			want: ">>>> Local copy\nhello\nthis\nis\nmy\nname\n<<<< Server copy\nhello\nthis\nis\nmy\nface",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

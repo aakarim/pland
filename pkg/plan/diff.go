@@ -12,38 +12,19 @@ func makeConflictSection(diff string) string {
 	return fmt.Sprintf("🔀 conflict\n\n%s", diff)
 }
 
+// prettyDiff returns an empty string if there are no diffs
+// otherwise returns the entire diff output.
 func prettyDiff(str1, str2 string) string {
 	finalStr := []string{}
-	spl1 := strings.Split(str1, "\n")
-	spl2 := strings.Split(str2, "\n")
-	// make them equal sizes by adding empty strings
-	lenDiff := len(spl1) - len(spl2)
-	if lenDiff > 0 {
-		// spl1 > spl2
-		for i := lenDiff; i > 0; i-- {
-			spl2 = append(spl2, "")
-		}
-	}
-	if lenDiff < 0 {
-		// spl2 > spl1
-		for i := lenDiff; i < 0; i++ {
-			spl1 = append(spl1, "")
-		}
-	}
-	// diff each line
-	var hasDiffs bool
-	for i := 0; i < len(spl1); i++ {
-		if spl1[i] != spl2[i] {
-			hasDiffs = true
-			finalStr = append(finalStr, "A > "+spl1[i])
-			finalStr = append(finalStr, "B > "+spl2[i])
-			continue
-		}
-		finalStr = append(finalStr, spl1[i])
-	}
-	if !hasDiffs {
+
+	// at the moment we only check for exact equality
+	if str1 == str2 {
 		return ""
 	}
+	finalStr = append(finalStr, ">>>> Local copy")
+	finalStr = append(finalStr, str1)
+	finalStr = append(finalStr, "<<<< Server copy")
+	finalStr = append(finalStr, str2)
 	return strings.Join(finalStr, "\n")
 }
 

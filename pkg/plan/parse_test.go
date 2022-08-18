@@ -22,15 +22,6 @@ func TestParse(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "fialing",
-			args: args{
-				ctx:      context.TODO(),
-				planFile: "# plan.header/0\n\nHi! This is my == plan file. 😀✍ == \n\nTwitter: @_aakarim\nGithub: @aakarim\n\n---\n\n# plan.project/plan \n\n\n- [x] add a daemon script\n- [ ] bug - if a file was reverted to a previous version (saved locally, reverted to previous version, saved), it will overwrite. There should be a way to detect this and action the revert, since that was the user's intention.\n- [x] add Saga magic comment/section \n- [ ] the onboarding experience should end with the user runnin the `plan fresh` command. `plan init` will add the header section with the default characters, but the user will need to type in `plan fresh` to get the section for the day.\n\n\n---\n\n# plan.day/2022-08-17\n\n- [ ] new plan should have some signal emojis so it's easy to scan and see which section you should jump to - also should be jumpable easily \n- [ ] set up plan as a doubly linked list\n\n# plan.day/2022-08-16\n\n- [ ] add some random tasks to fresh \n- [ ] implement `plan sync` by first downloading the latest version\n\t- [ ] sync conflicts should be resolved by parsing the file and going section by section, rather than diffing the whole file, because sections may have been added and the information may be confusing to resolve. The diffs _sbould_ be stored in the .plan file, though because it won't be so confusing that it overcomes the friction of having multiple files to represent conflicts.\n- [x] add components for email filtering\n- [x] email ted\n- [x] chase rebekka\n\n# plan.day/2022-08-15\n\n- [x] add a better header\n- [ ] install to $PATH\n- [x] fix $PATH on pland\n\n# plan.day/2022-08-14\n\n- [x] Read Part II of PLG Onboarding\n- [x] Study Org mode\n- [x] Plan `plan.fresh`\n- [x] write parser for plans\n- [x] write stringifier for plans\n\n",
-			},
-			want:    &PlanFile{},
-			wantErr: false,
-		},
-		{
 			name: "empty file",
 			args: args{
 				ctx:      context.Background(),

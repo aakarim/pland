@@ -18,6 +18,7 @@ type PlanFile struct {
 	ArbitrarySections []ArbitrarySection
 	Days              []Day // ordered by descending time order
 	LastTouched       time.Time
+	HasConflicts      bool
 }
 
 type Header struct {
@@ -199,6 +200,16 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 
 func (p PlanFile) String() string {
 	var str string
+	if p.HasConflicts {
+		str += "🔀 ⚠️ Conflicts found!\n\n"
+		str += "This happens in situations where another machine has\n"
+		str += "uploaded your .plan file to the server which has changed the file in ways we\n"
+		str += "resolve automatically.\n\n"
+		str += "You can resolve this issue by going through each plan section with a 🔀 symbol\n"
+		str += "and making it look how you expect it to look.\n\n"
+		str += "Remember a .plan file is just a normal text file, there's no magic here. So just\n"
+		str += "make it look how you'd expect it to look in the end."
+	}
 	str += "# plan.header" + "/" + strconv.Itoa(p.ParentVersion) + "\n\n"
 	str += p.Header.Contents + "\n\n"
 	for _, a := range p.ArbitrarySections {

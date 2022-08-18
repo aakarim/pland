@@ -46,7 +46,7 @@ type Day struct {
 }
 
 func (p *PlanFile) Digest() string {
-	return fmt.Sprintf("%d", xxhash.Sum64String(p.String()))
+	return fmt.Sprintf("%d", xxhash.Sum64String(p.StringExceptVersion()))
 }
 
 func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
@@ -198,20 +198,10 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 // 	return p, nil
 // }
 
-func (p PlanFile) String() string {
+// StringExceptHeader returns the string representation of the .plan file without
+// the version number. Useful for creating stable digests.
+func (p PlanFile) StringExceptVersion() string {
 	var str string
-	if p.HasConflicts {
-		str += "🔀 ⚠️ Conflicts found!\n\n"
-		str += "This happens in situations where another machine has\n"
-		str += "uploaded your .plan file to the server which has changed the file in ways we\n"
-		str += "resolve automatically.\n\n"
-		str += "You can resolve this issue by going through each plan section with a 🔀 symbol\n"
-		str += "and making it look how you expect it to look.\n\n"
-		str += "Remember a .plan file is just a normal text file, there's no magic here. So just\n"
-		str += "make it look how you'd expect it to look in the end."
-	}
-	str += "# plan.header" + "/" + strconv.Itoa(p.ParentVersion) + "\n\n"
-	str += p.Header.Contents + "\n\n"
 	for _, a := range p.ArbitrarySections {
 		str += a.token + "\n\n"
 		str += a.Contents + "\n\n"
@@ -224,5 +214,23 @@ func (p PlanFile) String() string {
 		str += "\n\n"
 		str += d.Contents + "\n\n"
 	}
+	return str
+}
+
+func (p PlanFile) String() string {
+	var str string
+	if p.HasConflicts {
+		str += "🔀 ⚠️ Conflicts found!\n\n"
+		str += "This happens in situations where another machine has\n"
+		str += "uploaded your .plan file to the server which has changed the file in ways we\n"
+		str += "resolve automatically.\n\n"
+		str += "You can resolve this issue by going through each plan section with a 🔀 symbol\n"
+		str += "and making it look how you expect it to look.\n\n"
+		str += "Remember a .plan file is just a normal text file, there's no magic here. So just\n"
+		str += "make it look how you'd expect it to look in the end.\n\n"
+	}
+	str += "# plan.header" + "/" + strconv.Itoa(p.ParentVersion) + "\n\n"
+	str += p.Header.Contents + "\n\n"
+	str += p.StringExceptVersion()
 	return str
 }

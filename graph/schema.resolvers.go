@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -71,18 +70,15 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	}
 
 	// tailPrev being nil means that the tail is the first entry
-	var conflict bool
 	if tailPrev.ID != p.ParentVersion && tail.Digest != p.Digest() {
 		pTail, err := planEntity.Parse(ctx, tail.Txt)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse tail: %w", err)
 		}
 		p, err = planEntity.Diff(p, pTail)
-		if err != nil && !errors.Is(err, planEntity.ErrConflict) {
+		if err != nil {
 			return nil, fmt.Errorf("could not diff: %w", err)
 		}
-		conflict = errors.Is(err, planEntity.ErrConflict)
-
 	}
 	// save plan file
 	p.ParentVersion = tail.ID
@@ -90,7 +86,7 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 		SetAuthor(user).
 		SetDigest(p.Digest()).
 		SetCreatedAt(time.Now()).
-		SetHasConflict(conflict).
+		SetHasConflict(p.HasConflicts).
 		SetPrev(tail).
 		SetTxt(p.String()).
 		Save(ctx)

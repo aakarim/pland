@@ -125,9 +125,6 @@ func Diff(p1 *PlanFile, p2 *PlanFile) (*PlanFile, error) {
 	for i, j := 0, len(diffedPlan.Days)-1; i < j; i, j = i+1, j-1 {
 		diffedPlan.Days[i], diffedPlan.Days[j] = diffedPlan.Days[j], diffedPlan.Days[i]
 	}
-	var err error
-	if conflict {
-		err = ErrConflict
-	}
-	return diffedPlan, err
+	diffedPlan.HasConflicts = conflict
+	return diffedPlan, nil
 }

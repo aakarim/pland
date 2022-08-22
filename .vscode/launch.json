@@ -34,7 +34,7 @@
         "request": "launch",
         "mode": "auto",
         "program": "${workspaceRoot}/cli",
-        // "args": ["-d"],
+        "args": ["sync", "-d"],
         "env": {
             "CHARM_HOST": "mini.home"
         },

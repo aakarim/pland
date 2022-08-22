@@ -57,12 +57,19 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 	}
 	fileEndLoc := len(planFile) - 1
 	locs := rResource.FindAllStringIndex(planFile, -1)
+	// find section start and end points
 	for i, loc := range locs {
 		locStr := strings.TrimSpace(planFile[loc[0]:loc[1]])
 		sectionStartLoc := loc[1] + 1
 		sectionEndLoc := fileEndLoc + 1
 		if i != len(locs)-1 {
 			sectionEndLoc = locs[i+1][0] - 1 // character before beginning of next resource
+		}
+		// handle empty sections
+		// turn them into an empty string
+		// TODO: find more elegant way of doing this
+		if sectionStartLoc > sectionEndLoc {
+			sectionEndLoc = sectionStartLoc
 		}
 		if strings.Contains(locStr, "plan.header") {
 			headerToken := strings.TrimSpace(planFile[sectionStartLoc:sectionEndLoc])

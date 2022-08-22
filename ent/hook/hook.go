@@ -9,6 +9,45 @@ import (
 	"github.com/aakarim/pland/ent"
 )
 
+// The ArbitrarySectionFunc type is an adapter to allow the use of ordinary
+// function as ArbitrarySection mutator.
+type ArbitrarySectionFunc func(context.Context, *ent.ArbitrarySectionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ArbitrarySectionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.ArbitrarySectionMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ArbitrarySectionMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The DayFunc type is an adapter to allow the use of ordinary
+// function as Day mutator.
+type DayFunc func(context.Context, *ent.DayMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DayFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.DayMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DayMutation", m)
+	}
+	return f(ctx, mv)
+}
+
+// The HeaderFunc type is an adapter to allow the use of ordinary
+// function as Header mutator.
+type HeaderFunc func(context.Context, *ent.HeaderMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f HeaderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.HeaderMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HeaderMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The PlanFunc type is an adapter to allow the use of ordinary
 // function as Plan mutator.
 type PlanFunc func(context.Context, *ent.PlanMutation) (ent.Value, error)

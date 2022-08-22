@@ -143,7 +143,7 @@ func TestParse(t *testing.T) {
 						Contents: `- [ ] Read stuff
 
 		---`,
-						token: "# plan.project/lix",
+						Token: "# plan.project/lix",
 					},
 				},
 			},
@@ -206,7 +206,7 @@ func TestPlanFile_String(t *testing.T) {
 				ArbitrarySections: []ArbitrarySection{
 					{
 						Contents: `- [x] Done`,
-						token:    "# plan.project/plan",
+						Token:    "# plan.project/plan",
 					},
 				},
 				Days: []Day{

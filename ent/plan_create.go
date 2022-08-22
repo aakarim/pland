@@ -10,6 +10,9 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/aakarim/pland/ent/arbitrarysection"
+	"github.com/aakarim/pland/ent/day"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/user"
 )
@@ -70,6 +73,55 @@ func (pc *PlanCreate) SetNillableAuthorID(id *int) *PlanCreate {
 // SetAuthor sets the "author" edge to the User entity.
 func (pc *PlanCreate) SetAuthor(u *User) *PlanCreate {
 	return pc.SetAuthorID(u.ID)
+}
+
+// AddDayIDs adds the "days" edge to the Day entity by IDs.
+func (pc *PlanCreate) AddDayIDs(ids ...int) *PlanCreate {
+	pc.mutation.AddDayIDs(ids...)
+	return pc
+}
+
+// AddDays adds the "days" edges to the Day entity.
+func (pc *PlanCreate) AddDays(d ...*Day) *PlanCreate {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return pc.AddDayIDs(ids...)
+}
+
+// AddArbitrarySectionIDs adds the "arbitrarySections" edge to the ArbitrarySection entity by IDs.
+func (pc *PlanCreate) AddArbitrarySectionIDs(ids ...int) *PlanCreate {
+	pc.mutation.AddArbitrarySectionIDs(ids...)
+	return pc
+}
+
+// AddArbitrarySections adds the "arbitrarySections" edges to the ArbitrarySection entity.
+func (pc *PlanCreate) AddArbitrarySections(a ...*ArbitrarySection) *PlanCreate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return pc.AddArbitrarySectionIDs(ids...)
+}
+
+// SetHeaderID sets the "header" edge to the Header entity by ID.
+func (pc *PlanCreate) SetHeaderID(id int) *PlanCreate {
+	pc.mutation.SetHeaderID(id)
+	return pc
+}
+
+// SetNillableHeaderID sets the "header" edge to the Header entity by ID if the given value is not nil.
+func (pc *PlanCreate) SetNillableHeaderID(id *int) *PlanCreate {
+	if id != nil {
+		pc = pc.SetHeaderID(*id)
+	}
+	return pc
+}
+
+// SetHeader sets the "header" edge to the Header entity.
+func (pc *PlanCreate) SetHeader(h *Header) *PlanCreate {
+	return pc.SetHeaderID(h.ID)
 }
 
 // SetPrevID sets the "prev" edge to the Plan entity by ID.
@@ -284,6 +336,63 @@ func (pc *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.user_plans = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.DaysIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.ArbitrarySectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.HeaderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   plan.HeaderTable,
+			Columns: []string{plan.HeaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: header.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pc.mutation.PrevIDs(); len(nodes) > 0 {

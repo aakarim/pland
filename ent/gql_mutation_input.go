@@ -8,13 +8,16 @@ import (
 
 // CreatePlanInput represents a mutation input for creating plans.
 type CreatePlanInput struct {
-	CreatedAt   time.Time
-	HasConflict *bool
-	Digest      string
-	Txt         string
-	AuthorID    *int
-	PrevID      *int
-	NextID      *int
+	CreatedAt           time.Time
+	HasConflict         *bool
+	Digest              string
+	Txt                 string
+	AuthorID            *int
+	DayIDs              []int
+	ArbitrarySectionIDs []int
+	HeaderID            *int
+	PrevID              *int
+	NextID              *int
 }
 
 // Mutate applies the CreatePlanInput on the PlanMutation builder.
@@ -27,6 +30,15 @@ func (i *CreatePlanInput) Mutate(m *PlanMutation) {
 	m.SetTxt(i.Txt)
 	if v := i.AuthorID; v != nil {
 		m.SetAuthorID(*v)
+	}
+	if v := i.DayIDs; len(v) > 0 {
+		m.AddDayIDs(v...)
+	}
+	if v := i.ArbitrarySectionIDs; len(v) > 0 {
+		m.AddArbitrarySectionIDs(v...)
+	}
+	if v := i.HeaderID; v != nil {
+		m.SetHeaderID(*v)
 	}
 	if v := i.PrevID; v != nil {
 		m.SetPrevID(*v)
@@ -44,14 +56,20 @@ func (c *PlanCreate) SetInput(i CreatePlanInput) *PlanCreate {
 
 // UpdatePlanInput represents a mutation input for updating plans.
 type UpdatePlanInput struct {
-	Digest      *string
-	Txt         *string
-	ClearAuthor bool
-	AuthorID    *int
-	ClearPrev   bool
-	PrevID      *int
-	ClearNext   bool
-	NextID      *int
+	Digest                    *string
+	Txt                       *string
+	ClearAuthor               bool
+	AuthorID                  *int
+	AddDayIDs                 []int
+	RemoveDayIDs              []int
+	AddArbitrarySectionIDs    []int
+	RemoveArbitrarySectionIDs []int
+	ClearHeader               bool
+	HeaderID                  *int
+	ClearPrev                 bool
+	PrevID                    *int
+	ClearNext                 bool
+	NextID                    *int
 }
 
 // Mutate applies the UpdatePlanInput on the PlanMutation builder.
@@ -67,6 +85,24 @@ func (i *UpdatePlanInput) Mutate(m *PlanMutation) {
 	}
 	if v := i.AuthorID; v != nil {
 		m.SetAuthorID(*v)
+	}
+	if v := i.AddDayIDs; len(v) > 0 {
+		m.AddDayIDs(v...)
+	}
+	if v := i.RemoveDayIDs; len(v) > 0 {
+		m.RemoveDayIDs(v...)
+	}
+	if v := i.AddArbitrarySectionIDs; len(v) > 0 {
+		m.AddArbitrarySectionIDs(v...)
+	}
+	if v := i.RemoveArbitrarySectionIDs; len(v) > 0 {
+		m.RemoveArbitrarySectionIDs(v...)
+	}
+	if i.ClearHeader {
+		m.ClearHeader()
+	}
+	if v := i.HeaderID; v != nil {
+		m.SetHeaderID(*v)
 	}
 	if i.ClearPrev {
 		m.ClearPrev()

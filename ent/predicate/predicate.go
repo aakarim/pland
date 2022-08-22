@@ -6,6 +6,15 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// ArbitrarySection is the predicate function for arbitrarysection builders.
+type ArbitrarySection func(*sql.Selector)
+
+// Day is the predicate function for day builders.
+type Day func(*sql.Selector)
+
+// Header is the predicate function for header builders.
+type Header func(*sql.Selector)
+
 // Plan is the predicate function for plan builders.
 type Plan func(*sql.Selector)
 

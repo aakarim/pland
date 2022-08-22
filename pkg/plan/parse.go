@@ -34,7 +34,7 @@ type ArbitrarySection struct {
 	// tokenStartLoc    scanner.Position
 	// contentsStartLoc scanner.Position
 	// sectionEndLoc    scanner.Position
-	token string
+	Token string
 }
 
 type Day struct {
@@ -107,7 +107,7 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 		// arbitrary token
 		p.ArbitrarySections = append(p.ArbitrarySections, ArbitrarySection{
 			Contents: strings.TrimSpace(planFile[sectionStartLoc:sectionEndLoc]),
-			token:    locStr,
+			Token:    locStr,
 		})
 	}
 
@@ -210,7 +210,7 @@ func Parse(ctx context.Context, planFile string) (*PlanFile, error) {
 func (p PlanFile) StringExceptVersion() string {
 	var str string
 	for _, a := range p.ArbitrarySections {
-		str += a.token + "\n\n"
+		str += a.Token + "\n\n"
 		str += a.Contents + "\n\n"
 	}
 	for i, d := range p.Days {

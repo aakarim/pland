@@ -10,6 +10,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/aakarim/pland/ent/arbitrarysection"
+	"github.com/aakarim/pland/ent/day"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/predicate"
 	"github.com/aakarim/pland/ent/user"
@@ -59,6 +62,55 @@ func (pu *PlanUpdate) SetAuthor(u *User) *PlanUpdate {
 	return pu.SetAuthorID(u.ID)
 }
 
+// AddDayIDs adds the "days" edge to the Day entity by IDs.
+func (pu *PlanUpdate) AddDayIDs(ids ...int) *PlanUpdate {
+	pu.mutation.AddDayIDs(ids...)
+	return pu
+}
+
+// AddDays adds the "days" edges to the Day entity.
+func (pu *PlanUpdate) AddDays(d ...*Day) *PlanUpdate {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return pu.AddDayIDs(ids...)
+}
+
+// AddArbitrarySectionIDs adds the "arbitrarySections" edge to the ArbitrarySection entity by IDs.
+func (pu *PlanUpdate) AddArbitrarySectionIDs(ids ...int) *PlanUpdate {
+	pu.mutation.AddArbitrarySectionIDs(ids...)
+	return pu
+}
+
+// AddArbitrarySections adds the "arbitrarySections" edges to the ArbitrarySection entity.
+func (pu *PlanUpdate) AddArbitrarySections(a ...*ArbitrarySection) *PlanUpdate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return pu.AddArbitrarySectionIDs(ids...)
+}
+
+// SetHeaderID sets the "header" edge to the Header entity by ID.
+func (pu *PlanUpdate) SetHeaderID(id int) *PlanUpdate {
+	pu.mutation.SetHeaderID(id)
+	return pu
+}
+
+// SetNillableHeaderID sets the "header" edge to the Header entity by ID if the given value is not nil.
+func (pu *PlanUpdate) SetNillableHeaderID(id *int) *PlanUpdate {
+	if id != nil {
+		pu = pu.SetHeaderID(*id)
+	}
+	return pu
+}
+
+// SetHeader sets the "header" edge to the Header entity.
+func (pu *PlanUpdate) SetHeader(h *Header) *PlanUpdate {
+	return pu.SetHeaderID(h.ID)
+}
+
 // SetPrevID sets the "prev" edge to the Plan entity by ID.
 func (pu *PlanUpdate) SetPrevID(id int) *PlanUpdate {
 	pu.mutation.SetPrevID(id)
@@ -105,6 +157,54 @@ func (pu *PlanUpdate) Mutation() *PlanMutation {
 // ClearAuthor clears the "author" edge to the User entity.
 func (pu *PlanUpdate) ClearAuthor() *PlanUpdate {
 	pu.mutation.ClearAuthor()
+	return pu
+}
+
+// ClearDays clears all "days" edges to the Day entity.
+func (pu *PlanUpdate) ClearDays() *PlanUpdate {
+	pu.mutation.ClearDays()
+	return pu
+}
+
+// RemoveDayIDs removes the "days" edge to Day entities by IDs.
+func (pu *PlanUpdate) RemoveDayIDs(ids ...int) *PlanUpdate {
+	pu.mutation.RemoveDayIDs(ids...)
+	return pu
+}
+
+// RemoveDays removes "days" edges to Day entities.
+func (pu *PlanUpdate) RemoveDays(d ...*Day) *PlanUpdate {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return pu.RemoveDayIDs(ids...)
+}
+
+// ClearArbitrarySections clears all "arbitrarySections" edges to the ArbitrarySection entity.
+func (pu *PlanUpdate) ClearArbitrarySections() *PlanUpdate {
+	pu.mutation.ClearArbitrarySections()
+	return pu
+}
+
+// RemoveArbitrarySectionIDs removes the "arbitrarySections" edge to ArbitrarySection entities by IDs.
+func (pu *PlanUpdate) RemoveArbitrarySectionIDs(ids ...int) *PlanUpdate {
+	pu.mutation.RemoveArbitrarySectionIDs(ids...)
+	return pu
+}
+
+// RemoveArbitrarySections removes "arbitrarySections" edges to ArbitrarySection entities.
+func (pu *PlanUpdate) RemoveArbitrarySections(a ...*ArbitrarySection) *PlanUpdate {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return pu.RemoveArbitrarySectionIDs(ids...)
+}
+
+// ClearHeader clears the "header" edge to the Header entity.
+func (pu *PlanUpdate) ClearHeader() *PlanUpdate {
+	pu.mutation.ClearHeader()
 	return pu
 }
 
@@ -241,6 +341,149 @@ func (pu *PlanUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if pu.mutation.DaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedDaysIDs(); len(nodes) > 0 && !pu.mutation.DaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.DaysIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.ArbitrarySectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedArbitrarySectionsIDs(); len(nodes) > 0 && !pu.mutation.ArbitrarySectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.ArbitrarySectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.HeaderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   plan.HeaderTable,
+			Columns: []string{plan.HeaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: header.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.HeaderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   plan.HeaderTable,
+			Columns: []string{plan.HeaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: header.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if pu.mutation.PrevCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -361,6 +604,55 @@ func (puo *PlanUpdateOne) SetAuthor(u *User) *PlanUpdateOne {
 	return puo.SetAuthorID(u.ID)
 }
 
+// AddDayIDs adds the "days" edge to the Day entity by IDs.
+func (puo *PlanUpdateOne) AddDayIDs(ids ...int) *PlanUpdateOne {
+	puo.mutation.AddDayIDs(ids...)
+	return puo
+}
+
+// AddDays adds the "days" edges to the Day entity.
+func (puo *PlanUpdateOne) AddDays(d ...*Day) *PlanUpdateOne {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return puo.AddDayIDs(ids...)
+}
+
+// AddArbitrarySectionIDs adds the "arbitrarySections" edge to the ArbitrarySection entity by IDs.
+func (puo *PlanUpdateOne) AddArbitrarySectionIDs(ids ...int) *PlanUpdateOne {
+	puo.mutation.AddArbitrarySectionIDs(ids...)
+	return puo
+}
+
+// AddArbitrarySections adds the "arbitrarySections" edges to the ArbitrarySection entity.
+func (puo *PlanUpdateOne) AddArbitrarySections(a ...*ArbitrarySection) *PlanUpdateOne {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return puo.AddArbitrarySectionIDs(ids...)
+}
+
+// SetHeaderID sets the "header" edge to the Header entity by ID.
+func (puo *PlanUpdateOne) SetHeaderID(id int) *PlanUpdateOne {
+	puo.mutation.SetHeaderID(id)
+	return puo
+}
+
+// SetNillableHeaderID sets the "header" edge to the Header entity by ID if the given value is not nil.
+func (puo *PlanUpdateOne) SetNillableHeaderID(id *int) *PlanUpdateOne {
+	if id != nil {
+		puo = puo.SetHeaderID(*id)
+	}
+	return puo
+}
+
+// SetHeader sets the "header" edge to the Header entity.
+func (puo *PlanUpdateOne) SetHeader(h *Header) *PlanUpdateOne {
+	return puo.SetHeaderID(h.ID)
+}
+
 // SetPrevID sets the "prev" edge to the Plan entity by ID.
 func (puo *PlanUpdateOne) SetPrevID(id int) *PlanUpdateOne {
 	puo.mutation.SetPrevID(id)
@@ -407,6 +699,54 @@ func (puo *PlanUpdateOne) Mutation() *PlanMutation {
 // ClearAuthor clears the "author" edge to the User entity.
 func (puo *PlanUpdateOne) ClearAuthor() *PlanUpdateOne {
 	puo.mutation.ClearAuthor()
+	return puo
+}
+
+// ClearDays clears all "days" edges to the Day entity.
+func (puo *PlanUpdateOne) ClearDays() *PlanUpdateOne {
+	puo.mutation.ClearDays()
+	return puo
+}
+
+// RemoveDayIDs removes the "days" edge to Day entities by IDs.
+func (puo *PlanUpdateOne) RemoveDayIDs(ids ...int) *PlanUpdateOne {
+	puo.mutation.RemoveDayIDs(ids...)
+	return puo
+}
+
+// RemoveDays removes "days" edges to Day entities.
+func (puo *PlanUpdateOne) RemoveDays(d ...*Day) *PlanUpdateOne {
+	ids := make([]int, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return puo.RemoveDayIDs(ids...)
+}
+
+// ClearArbitrarySections clears all "arbitrarySections" edges to the ArbitrarySection entity.
+func (puo *PlanUpdateOne) ClearArbitrarySections() *PlanUpdateOne {
+	puo.mutation.ClearArbitrarySections()
+	return puo
+}
+
+// RemoveArbitrarySectionIDs removes the "arbitrarySections" edge to ArbitrarySection entities by IDs.
+func (puo *PlanUpdateOne) RemoveArbitrarySectionIDs(ids ...int) *PlanUpdateOne {
+	puo.mutation.RemoveArbitrarySectionIDs(ids...)
+	return puo
+}
+
+// RemoveArbitrarySections removes "arbitrarySections" edges to ArbitrarySection entities.
+func (puo *PlanUpdateOne) RemoveArbitrarySections(a ...*ArbitrarySection) *PlanUpdateOne {
+	ids := make([]int, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return puo.RemoveArbitrarySectionIDs(ids...)
+}
+
+// ClearHeader clears the "header" edge to the Header entity.
+func (puo *PlanUpdateOne) ClearHeader() *PlanUpdateOne {
+	puo.mutation.ClearHeader()
 	return puo
 }
 
@@ -565,6 +905,149 @@ func (puo *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) 
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.DaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedDaysIDs(); len(nodes) > 0 && !puo.mutation.DaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.DaysIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.DaysTable,
+			Columns: plan.DaysPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: day.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.ArbitrarySectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedArbitrarySectionsIDs(); len(nodes) > 0 && !puo.mutation.ArbitrarySectionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.ArbitrarySectionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   plan.ArbitrarySectionsTable,
+			Columns: plan.ArbitrarySectionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: arbitrarysection.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.HeaderCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   plan.HeaderTable,
+			Columns: []string{plan.HeaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: header.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.HeaderIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   plan.HeaderTable,
+			Columns: []string{plan.HeaderColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: header.FieldID,
 				},
 			},
 		}

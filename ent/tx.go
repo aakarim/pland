@@ -12,6 +12,12 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// ArbitrarySection is the client for interacting with the ArbitrarySection builders.
+	ArbitrarySection *ArbitrarySectionClient
+	// Day is the client for interacting with the Day builders.
+	Day *DayClient
+	// Header is the client for interacting with the Header builders.
+	Header *HeaderClient
 	// Plan is the client for interacting with the Plan builders.
 	Plan *PlanClient
 	// User is the client for interacting with the User builders.
@@ -151,6 +157,9 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.ArbitrarySection = NewArbitrarySectionClient(tx.config)
+	tx.Day = NewDayClient(tx.config)
+	tx.Header = NewHeaderClient(tx.config)
 	tx.Plan = NewPlanClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
@@ -162,7 +171,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Plan.QueryXXX(), the query will be executed
+// applies a query, for example: ArbitrarySection.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

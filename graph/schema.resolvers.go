@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aakarim/pland/ent"
 	"github.com/aakarim/pland/ent/plan"
@@ -38,12 +37,11 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	}
 	// if no tail then this is the first one
 	if noTail {
-		tail, err := r.Client.Plan.Create().
-			SetAuthor(user).
-			SetDigest(p.Digest()).
-			SetCreatedAt(time.Now()).
-			SetHasConflict(false).
-			SetTxt(p.String()).Save(ctx)
+		tp, err := r.makePlan(ctx, user, p)
+		if err != nil {
+			return nil, fmt.Errorf("could not make plan: %w", err)
+		}
+		tail, err = tp.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not save plan: %w", err)
 		}
@@ -56,13 +54,14 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	}
 	// this is second one, no conflict
 	if tailPrev == nil {
-		tail, err := r.Client.Plan.Create().
-			SetAuthor(user).
-			SetDigest(p.Digest()).
-			SetCreatedAt(time.Now()).
+		tp, err := r.makePlan(ctx, user, p)
+		if err != nil {
+			return nil, fmt.Errorf("could not make plan: %w", err)
+		}
+		tail, err := tp.
 			SetPrev(tail).
 			SetHasConflict(false).
-			SetTxt(p.String()).Save(ctx)
+			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not save plan: %w", err)
 		}
@@ -83,19 +82,18 @@ func (r *mutationResolver) CreatePlan(ctx context.Context, input model.CreatePla
 	if tail.Digest != p.Digest() {
 		// save plan file
 		p.ParentVersion = tail.ID
-		tail, err = r.Client.Plan.Create().
-			SetAuthor(user).
-			SetDigest(p.Digest()).
-			SetCreatedAt(time.Now()).
+		tp, err := r.makePlan(ctx, user, p)
+		if err != nil {
+			return nil, fmt.Errorf("could not make plan: %w", err)
+		}
+		tail, err = tp.
 			SetHasConflict(p.HasConflicts).
 			SetPrev(tail).
-			SetTxt(p.String()).
 			Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not save plan: %w", err)
 		}
 	}
-	// TODO: build new derived data from plan/ fire event
 	return tail, nil
 }
 

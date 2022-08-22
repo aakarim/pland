@@ -10,6 +10,9 @@ import (
 
 	"github.com/aakarim/pland/ent/migrate"
 
+	"github.com/aakarim/pland/ent/arbitrarysection"
+	"github.com/aakarim/pland/ent/day"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/user"
 
@@ -23,6 +26,12 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// ArbitrarySection is the client for interacting with the ArbitrarySection builders.
+	ArbitrarySection *ArbitrarySectionClient
+	// Day is the client for interacting with the Day builders.
+	Day *DayClient
+	// Header is the client for interacting with the Header builders.
+	Header *HeaderClient
 	// Plan is the client for interacting with the Plan builders.
 	Plan *PlanClient
 	// User is the client for interacting with the User builders.
@@ -42,6 +51,9 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.ArbitrarySection = NewArbitrarySectionClient(c.config)
+	c.Day = NewDayClient(c.config)
+	c.Header = NewHeaderClient(c.config)
 	c.Plan = NewPlanClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -75,10 +87,13 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Plan:   NewPlanClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:              ctx,
+		config:           cfg,
+		ArbitrarySection: NewArbitrarySectionClient(cfg),
+		Day:              NewDayClient(cfg),
+		Header:           NewHeaderClient(cfg),
+		Plan:             NewPlanClient(cfg),
+		User:             NewUserClient(cfg),
 	}, nil
 }
 
@@ -96,17 +111,20 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Plan:   NewPlanClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:              ctx,
+		config:           cfg,
+		ArbitrarySection: NewArbitrarySectionClient(cfg),
+		Day:              NewDayClient(cfg),
+		Header:           NewHeaderClient(cfg),
+		Plan:             NewPlanClient(cfg),
+		User:             NewUserClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Plan.
+//		ArbitrarySection.
 //		Query().
 //		Count(ctx)
 //
@@ -129,8 +147,329 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.ArbitrarySection.Use(hooks...)
+	c.Day.Use(hooks...)
+	c.Header.Use(hooks...)
 	c.Plan.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// ArbitrarySectionClient is a client for the ArbitrarySection schema.
+type ArbitrarySectionClient struct {
+	config
+}
+
+// NewArbitrarySectionClient returns a client for the ArbitrarySection from the given config.
+func NewArbitrarySectionClient(c config) *ArbitrarySectionClient {
+	return &ArbitrarySectionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `arbitrarysection.Hooks(f(g(h())))`.
+func (c *ArbitrarySectionClient) Use(hooks ...Hook) {
+	c.hooks.ArbitrarySection = append(c.hooks.ArbitrarySection, hooks...)
+}
+
+// Create returns a builder for creating a ArbitrarySection entity.
+func (c *ArbitrarySectionClient) Create() *ArbitrarySectionCreate {
+	mutation := newArbitrarySectionMutation(c.config, OpCreate)
+	return &ArbitrarySectionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ArbitrarySection entities.
+func (c *ArbitrarySectionClient) CreateBulk(builders ...*ArbitrarySectionCreate) *ArbitrarySectionCreateBulk {
+	return &ArbitrarySectionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ArbitrarySection.
+func (c *ArbitrarySectionClient) Update() *ArbitrarySectionUpdate {
+	mutation := newArbitrarySectionMutation(c.config, OpUpdate)
+	return &ArbitrarySectionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ArbitrarySectionClient) UpdateOne(as *ArbitrarySection) *ArbitrarySectionUpdateOne {
+	mutation := newArbitrarySectionMutation(c.config, OpUpdateOne, withArbitrarySection(as))
+	return &ArbitrarySectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ArbitrarySectionClient) UpdateOneID(id int) *ArbitrarySectionUpdateOne {
+	mutation := newArbitrarySectionMutation(c.config, OpUpdateOne, withArbitrarySectionID(id))
+	return &ArbitrarySectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ArbitrarySection.
+func (c *ArbitrarySectionClient) Delete() *ArbitrarySectionDelete {
+	mutation := newArbitrarySectionMutation(c.config, OpDelete)
+	return &ArbitrarySectionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ArbitrarySectionClient) DeleteOne(as *ArbitrarySection) *ArbitrarySectionDeleteOne {
+	return c.DeleteOneID(as.ID)
+}
+
+// DeleteOne returns a builder for deleting the given entity by its id.
+func (c *ArbitrarySectionClient) DeleteOneID(id int) *ArbitrarySectionDeleteOne {
+	builder := c.Delete().Where(arbitrarysection.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ArbitrarySectionDeleteOne{builder}
+}
+
+// Query returns a query builder for ArbitrarySection.
+func (c *ArbitrarySectionClient) Query() *ArbitrarySectionQuery {
+	return &ArbitrarySectionQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a ArbitrarySection entity by its id.
+func (c *ArbitrarySectionClient) Get(ctx context.Context, id int) (*ArbitrarySection, error) {
+	return c.Query().Where(arbitrarysection.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ArbitrarySectionClient) GetX(ctx context.Context, id int) *ArbitrarySection {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlan queries the plan edge of a ArbitrarySection.
+func (c *ArbitrarySectionClient) QueryPlan(as *ArbitrarySection) *PlanQuery {
+	query := &PlanQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := as.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(arbitrarysection.Table, arbitrarysection.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, arbitrarysection.PlanTable, arbitrarysection.PlanPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ArbitrarySectionClient) Hooks() []Hook {
+	return c.hooks.ArbitrarySection
+}
+
+// DayClient is a client for the Day schema.
+type DayClient struct {
+	config
+}
+
+// NewDayClient returns a client for the Day from the given config.
+func NewDayClient(c config) *DayClient {
+	return &DayClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `day.Hooks(f(g(h())))`.
+func (c *DayClient) Use(hooks ...Hook) {
+	c.hooks.Day = append(c.hooks.Day, hooks...)
+}
+
+// Create returns a builder for creating a Day entity.
+func (c *DayClient) Create() *DayCreate {
+	mutation := newDayMutation(c.config, OpCreate)
+	return &DayCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Day entities.
+func (c *DayClient) CreateBulk(builders ...*DayCreate) *DayCreateBulk {
+	return &DayCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Day.
+func (c *DayClient) Update() *DayUpdate {
+	mutation := newDayMutation(c.config, OpUpdate)
+	return &DayUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DayClient) UpdateOne(d *Day) *DayUpdateOne {
+	mutation := newDayMutation(c.config, OpUpdateOne, withDay(d))
+	return &DayUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DayClient) UpdateOneID(id int) *DayUpdateOne {
+	mutation := newDayMutation(c.config, OpUpdateOne, withDayID(id))
+	return &DayUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Day.
+func (c *DayClient) Delete() *DayDelete {
+	mutation := newDayMutation(c.config, OpDelete)
+	return &DayDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DayClient) DeleteOne(d *Day) *DayDeleteOne {
+	return c.DeleteOneID(d.ID)
+}
+
+// DeleteOne returns a builder for deleting the given entity by its id.
+func (c *DayClient) DeleteOneID(id int) *DayDeleteOne {
+	builder := c.Delete().Where(day.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DayDeleteOne{builder}
+}
+
+// Query returns a query builder for Day.
+func (c *DayClient) Query() *DayQuery {
+	return &DayQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Day entity by its id.
+func (c *DayClient) Get(ctx context.Context, id int) (*Day, error) {
+	return c.Query().Where(day.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DayClient) GetX(ctx context.Context, id int) *Day {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlan queries the plan edge of a Day.
+func (c *DayClient) QueryPlan(d *Day) *PlanQuery {
+	query := &PlanQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := d.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(day.Table, day.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, day.PlanTable, day.PlanPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(d.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *DayClient) Hooks() []Hook {
+	return c.hooks.Day
+}
+
+// HeaderClient is a client for the Header schema.
+type HeaderClient struct {
+	config
+}
+
+// NewHeaderClient returns a client for the Header from the given config.
+func NewHeaderClient(c config) *HeaderClient {
+	return &HeaderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `header.Hooks(f(g(h())))`.
+func (c *HeaderClient) Use(hooks ...Hook) {
+	c.hooks.Header = append(c.hooks.Header, hooks...)
+}
+
+// Create returns a builder for creating a Header entity.
+func (c *HeaderClient) Create() *HeaderCreate {
+	mutation := newHeaderMutation(c.config, OpCreate)
+	return &HeaderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Header entities.
+func (c *HeaderClient) CreateBulk(builders ...*HeaderCreate) *HeaderCreateBulk {
+	return &HeaderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Header.
+func (c *HeaderClient) Update() *HeaderUpdate {
+	mutation := newHeaderMutation(c.config, OpUpdate)
+	return &HeaderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *HeaderClient) UpdateOne(h *Header) *HeaderUpdateOne {
+	mutation := newHeaderMutation(c.config, OpUpdateOne, withHeader(h))
+	return &HeaderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *HeaderClient) UpdateOneID(id int) *HeaderUpdateOne {
+	mutation := newHeaderMutation(c.config, OpUpdateOne, withHeaderID(id))
+	return &HeaderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Header.
+func (c *HeaderClient) Delete() *HeaderDelete {
+	mutation := newHeaderMutation(c.config, OpDelete)
+	return &HeaderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *HeaderClient) DeleteOne(h *Header) *HeaderDeleteOne {
+	return c.DeleteOneID(h.ID)
+}
+
+// DeleteOne returns a builder for deleting the given entity by its id.
+func (c *HeaderClient) DeleteOneID(id int) *HeaderDeleteOne {
+	builder := c.Delete().Where(header.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &HeaderDeleteOne{builder}
+}
+
+// Query returns a query builder for Header.
+func (c *HeaderClient) Query() *HeaderQuery {
+	return &HeaderQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Header entity by its id.
+func (c *HeaderClient) Get(ctx context.Context, id int) (*Header, error) {
+	return c.Query().Where(header.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *HeaderClient) GetX(ctx context.Context, id int) *Header {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPlan queries the plan edge of a Header.
+func (c *HeaderClient) QueryPlan(h *Header) *PlanQuery {
+	query := &PlanQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := h.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(header.Table, header.FieldID, id),
+			sqlgraph.To(plan.Table, plan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, header.PlanTable, header.PlanColumn),
+		)
+		fromV = sqlgraph.Neighbors(h.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *HeaderClient) Hooks() []Hook {
+	return c.hooks.Header
 }
 
 // PlanClient is a client for the Plan schema.
@@ -227,6 +566,54 @@ func (c *PlanClient) QueryAuthor(pl *Plan) *UserQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, plan.AuthorTable, plan.AuthorColumn),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDays queries the days edge of a Plan.
+func (c *PlanClient) QueryDays(pl *Plan) *DayQuery {
+	query := &DayQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(day.Table, day.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, plan.DaysTable, plan.DaysPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryArbitrarySections queries the arbitrarySections edge of a Plan.
+func (c *PlanClient) QueryArbitrarySections(pl *Plan) *ArbitrarySectionQuery {
+	query := &ArbitrarySectionQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(arbitrarysection.Table, arbitrarysection.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, plan.ArbitrarySectionsTable, plan.ArbitrarySectionsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryHeader queries the header edge of a Plan.
+func (c *PlanClient) QueryHeader(pl *Plan) *HeaderQuery {
+	query := &HeaderQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, id),
+			sqlgraph.To(header.Table, header.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, plan.HeaderTable, plan.HeaderColumn),
 		)
 		fromV = sqlgraph.Neighbors(pl.driver.Dialect(), step)
 		return fromV, nil

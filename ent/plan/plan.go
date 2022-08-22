@@ -17,6 +17,12 @@ const (
 	FieldTxt = "txt"
 	// EdgeAuthor holds the string denoting the author edge name in mutations.
 	EdgeAuthor = "author"
+	// EdgeDays holds the string denoting the days edge name in mutations.
+	EdgeDays = "days"
+	// EdgeArbitrarySections holds the string denoting the arbitrarysections edge name in mutations.
+	EdgeArbitrarySections = "arbitrarySections"
+	// EdgeHeader holds the string denoting the header edge name in mutations.
+	EdgeHeader = "header"
 	// EdgePrev holds the string denoting the prev edge name in mutations.
 	EdgePrev = "prev"
 	// EdgeNext holds the string denoting the next edge name in mutations.
@@ -30,6 +36,23 @@ const (
 	AuthorInverseTable = "charm_user"
 	// AuthorColumn is the table column denoting the author relation/edge.
 	AuthorColumn = "user_plans"
+	// DaysTable is the table that holds the days relation/edge. The primary key declared below.
+	DaysTable = "plan_days"
+	// DaysInverseTable is the table name for the Day entity.
+	// It exists in this package in order to avoid circular dependency with the "day" package.
+	DaysInverseTable = "days"
+	// ArbitrarySectionsTable is the table that holds the arbitrarySections relation/edge. The primary key declared below.
+	ArbitrarySectionsTable = "plan_arbitrarySections"
+	// ArbitrarySectionsInverseTable is the table name for the ArbitrarySection entity.
+	// It exists in this package in order to avoid circular dependency with the "arbitrarysection" package.
+	ArbitrarySectionsInverseTable = "arbitrary_sections"
+	// HeaderTable is the table that holds the header relation/edge.
+	HeaderTable = "headers"
+	// HeaderInverseTable is the table name for the Header entity.
+	// It exists in this package in order to avoid circular dependency with the "header" package.
+	HeaderInverseTable = "headers"
+	// HeaderColumn is the table column denoting the header relation/edge.
+	HeaderColumn = "plan_header"
 	// PrevTable is the table that holds the prev relation/edge.
 	PrevTable = "plans"
 	// PrevColumn is the table column denoting the prev relation/edge.
@@ -55,6 +78,15 @@ var ForeignKeys = []string{
 	"plan_next",
 	"user_plans",
 }
+
+var (
+	// DaysPrimaryKey and DaysColumn2 are the table columns denoting the
+	// primary key for the days relation (M2M).
+	DaysPrimaryKey = []string{"plan_id", "day_id"}
+	// ArbitrarySectionsPrimaryKey and ArbitrarySectionsColumn2 are the table columns denoting the
+	// primary key for the arbitrarySections relation (M2M).
+	ArbitrarySectionsPrimaryKey = []string{"plan_id", "arbitrary_section_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {

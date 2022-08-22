@@ -13,6 +13,256 @@ import (
 )
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (as *ArbitrarySectionQuery) CollectFields(ctx context.Context, satisfies ...string) (*ArbitrarySectionQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return as, nil
+	}
+	if err := as.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return as, nil
+}
+
+func (as *ArbitrarySectionQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "plan":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &PlanQuery{config: as.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			as.WithNamedPlan(alias, func(wq *PlanQuery) {
+				*wq = *query
+			})
+		}
+	}
+	return nil
+}
+
+type arbitrarysectionPaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []ArbitrarySectionPaginateOption
+}
+
+func newArbitrarySectionPaginateArgs(rv map[string]interface{}) *arbitrarysectionPaginateArgs {
+	args := &arbitrarysectionPaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	if v, ok := rv[orderByField]; ok {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			var (
+				err1, err2 error
+				order      = &ArbitrarySectionOrder{Field: &ArbitrarySectionOrderField{}}
+			)
+			if d, ok := v[directionField]; ok {
+				err1 = order.Direction.UnmarshalGQL(d)
+			}
+			if f, ok := v[fieldField]; ok {
+				err2 = order.Field.UnmarshalGQL(f)
+			}
+			if err1 == nil && err2 == nil {
+				args.opts = append(args.opts, WithArbitrarySectionOrder(order))
+			}
+		case *ArbitrarySectionOrder:
+			if v != nil {
+				args.opts = append(args.opts, WithArbitrarySectionOrder(v))
+			}
+		}
+	}
+	if v, ok := rv[whereField].(*ArbitrarySectionWhereInput); ok {
+		args.opts = append(args.opts, WithArbitrarySectionFilter(v.Filter))
+	}
+	return args
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (d *DayQuery) CollectFields(ctx context.Context, satisfies ...string) (*DayQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return d, nil
+	}
+	if err := d.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func (d *DayQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "plan":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &PlanQuery{config: d.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			d.WithNamedPlan(alias, func(wq *PlanQuery) {
+				*wq = *query
+			})
+		}
+	}
+	return nil
+}
+
+type dayPaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []DayPaginateOption
+}
+
+func newDayPaginateArgs(rv map[string]interface{}) *dayPaginateArgs {
+	args := &dayPaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	if v, ok := rv[orderByField]; ok {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			var (
+				err1, err2 error
+				order      = &DayOrder{Field: &DayOrderField{}}
+			)
+			if d, ok := v[directionField]; ok {
+				err1 = order.Direction.UnmarshalGQL(d)
+			}
+			if f, ok := v[fieldField]; ok {
+				err2 = order.Field.UnmarshalGQL(f)
+			}
+			if err1 == nil && err2 == nil {
+				args.opts = append(args.opts, WithDayOrder(order))
+			}
+		case *DayOrder:
+			if v != nil {
+				args.opts = append(args.opts, WithDayOrder(v))
+			}
+		}
+	}
+	if v, ok := rv[whereField].(*DayWhereInput); ok {
+		args.opts = append(args.opts, WithDayFilter(v.Filter))
+	}
+	return args
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (h *HeaderQuery) CollectFields(ctx context.Context, satisfies ...string) (*HeaderQuery, error) {
+	fc := graphql.GetFieldContext(ctx)
+	if fc == nil {
+		return h, nil
+	}
+	if err := h.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
+func (h *HeaderQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
+	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "plan":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &PlanQuery{config: h.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			h.withPlan = query
+		}
+	}
+	return nil
+}
+
+type headerPaginateArgs struct {
+	first, last   *int
+	after, before *Cursor
+	opts          []HeaderPaginateOption
+}
+
+func newHeaderPaginateArgs(rv map[string]interface{}) *headerPaginateArgs {
+	args := &headerPaginateArgs{}
+	if rv == nil {
+		return args
+	}
+	if v := rv[firstField]; v != nil {
+		args.first = v.(*int)
+	}
+	if v := rv[lastField]; v != nil {
+		args.last = v.(*int)
+	}
+	if v := rv[afterField]; v != nil {
+		args.after = v.(*Cursor)
+	}
+	if v := rv[beforeField]; v != nil {
+		args.before = v.(*Cursor)
+	}
+	if v, ok := rv[orderByField]; ok {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			var (
+				err1, err2 error
+				order      = &HeaderOrder{Field: &HeaderOrderField{}}
+			)
+			if d, ok := v[directionField]; ok {
+				err1 = order.Direction.UnmarshalGQL(d)
+			}
+			if f, ok := v[fieldField]; ok {
+				err2 = order.Field.UnmarshalGQL(f)
+			}
+			if err1 == nil && err2 == nil {
+				args.opts = append(args.opts, WithHeaderOrder(order))
+			}
+		case *HeaderOrder:
+			if v != nil {
+				args.opts = append(args.opts, WithHeaderOrder(v))
+			}
+		}
+	}
+	if v, ok := rv[whereField].(*HeaderWhereInput); ok {
+		args.opts = append(args.opts, WithHeaderFilter(v.Filter))
+	}
+	return args
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
 func (pl *PlanQuery) CollectFields(ctx context.Context, satisfies ...string) (*PlanQuery, error) {
 	fc := graphql.GetFieldContext(ctx)
 	if fc == nil {
@@ -38,6 +288,40 @@ func (pl *PlanQuery) collectField(ctx context.Context, op *graphql.OperationCont
 				return err
 			}
 			pl.withAuthor = query
+		case "days":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &DayQuery{config: pl.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pl.WithNamedDays(alias, func(wq *DayQuery) {
+				*wq = *query
+			})
+		case "arbitrarysections", "arbitrarySections":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &ArbitrarySectionQuery{config: pl.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pl.WithNamedArbitrarySections(alias, func(wq *ArbitrarySectionQuery) {
+				*wq = *query
+			})
+		case "header":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &HeaderQuery{config: pl.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pl.withHeader = query
 		case "prev":
 			var (
 				alias = field.Alias

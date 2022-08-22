@@ -11,6 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/aakarim/pland/ent/arbitrarysection"
+	"github.com/aakarim/pland/ent/day"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/predicate"
 	"github.com/aakarim/pland/ent/user"
@@ -19,18 +22,23 @@ import (
 // PlanQuery is the builder for querying Plan entities.
 type PlanQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.Plan
-	withAuthor *UserQuery
-	withPrev   *PlanQuery
-	withNext   *PlanQuery
-	withFKs    bool
-	modifiers  []func(*sql.Selector)
-	loadTotal  []func(context.Context, []*Plan) error
+	limit                      *int
+	offset                     *int
+	unique                     *bool
+	order                      []OrderFunc
+	fields                     []string
+	predicates                 []predicate.Plan
+	withAuthor                 *UserQuery
+	withDays                   *DayQuery
+	withArbitrarySections      *ArbitrarySectionQuery
+	withHeader                 *HeaderQuery
+	withPrev                   *PlanQuery
+	withNext                   *PlanQuery
+	withFKs                    bool
+	modifiers                  []func(*sql.Selector)
+	loadTotal                  []func(context.Context, []*Plan) error
+	withNamedDays              map[string]*DayQuery
+	withNamedArbitrarySections map[string]*ArbitrarySectionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -82,6 +90,72 @@ func (pq *PlanQuery) QueryAuthor() *UserQuery {
 			sqlgraph.From(plan.Table, plan.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, plan.AuthorTable, plan.AuthorColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDays chains the current query on the "days" edge.
+func (pq *PlanQuery) QueryDays() *DayQuery {
+	query := &DayQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(day.Table, day.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, plan.DaysTable, plan.DaysPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryArbitrarySections chains the current query on the "arbitrarySections" edge.
+func (pq *PlanQuery) QueryArbitrarySections() *ArbitrarySectionQuery {
+	query := &ArbitrarySectionQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(arbitrarysection.Table, arbitrarysection.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, plan.ArbitrarySectionsTable, plan.ArbitrarySectionsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryHeader chains the current query on the "header" edge.
+func (pq *PlanQuery) QueryHeader() *HeaderQuery {
+	query := &HeaderQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(plan.Table, plan.FieldID, selector),
+			sqlgraph.To(header.Table, header.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, plan.HeaderTable, plan.HeaderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -309,14 +383,17 @@ func (pq *PlanQuery) Clone() *PlanQuery {
 		return nil
 	}
 	return &PlanQuery{
-		config:     pq.config,
-		limit:      pq.limit,
-		offset:     pq.offset,
-		order:      append([]OrderFunc{}, pq.order...),
-		predicates: append([]predicate.Plan{}, pq.predicates...),
-		withAuthor: pq.withAuthor.Clone(),
-		withPrev:   pq.withPrev.Clone(),
-		withNext:   pq.withNext.Clone(),
+		config:                pq.config,
+		limit:                 pq.limit,
+		offset:                pq.offset,
+		order:                 append([]OrderFunc{}, pq.order...),
+		predicates:            append([]predicate.Plan{}, pq.predicates...),
+		withAuthor:            pq.withAuthor.Clone(),
+		withDays:              pq.withDays.Clone(),
+		withArbitrarySections: pq.withArbitrarySections.Clone(),
+		withHeader:            pq.withHeader.Clone(),
+		withPrev:              pq.withPrev.Clone(),
+		withNext:              pq.withNext.Clone(),
 		// clone intermediate query.
 		sql:    pq.sql.Clone(),
 		path:   pq.path,
@@ -332,6 +409,39 @@ func (pq *PlanQuery) WithAuthor(opts ...func(*UserQuery)) *PlanQuery {
 		opt(query)
 	}
 	pq.withAuthor = query
+	return pq
+}
+
+// WithDays tells the query-builder to eager-load the nodes that are connected to
+// the "days" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithDays(opts ...func(*DayQuery)) *PlanQuery {
+	query := &DayQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withDays = query
+	return pq
+}
+
+// WithArbitrarySections tells the query-builder to eager-load the nodes that are connected to
+// the "arbitrarySections" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithArbitrarySections(opts ...func(*ArbitrarySectionQuery)) *PlanQuery {
+	query := &ArbitrarySectionQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withArbitrarySections = query
+	return pq
+}
+
+// WithHeader tells the query-builder to eager-load the nodes that are connected to
+// the "header" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithHeader(opts ...func(*HeaderQuery)) *PlanQuery {
+	query := &HeaderQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withHeader = query
 	return pq
 }
 
@@ -428,8 +538,11 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 		nodes       = []*Plan{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [6]bool{
 			pq.withAuthor != nil,
+			pq.withDays != nil,
+			pq.withArbitrarySections != nil,
+			pq.withHeader != nil,
 			pq.withPrev != nil,
 			pq.withNext != nil,
 		}
@@ -467,6 +580,26 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 			return nil, err
 		}
 	}
+	if query := pq.withDays; query != nil {
+		if err := pq.loadDays(ctx, query, nodes,
+			func(n *Plan) { n.Edges.Days = []*Day{} },
+			func(n *Plan, e *Day) { n.Edges.Days = append(n.Edges.Days, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withArbitrarySections; query != nil {
+		if err := pq.loadArbitrarySections(ctx, query, nodes,
+			func(n *Plan) { n.Edges.ArbitrarySections = []*ArbitrarySection{} },
+			func(n *Plan, e *ArbitrarySection) { n.Edges.ArbitrarySections = append(n.Edges.ArbitrarySections, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withHeader; query != nil {
+		if err := pq.loadHeader(ctx, query, nodes, nil,
+			func(n *Plan, e *Header) { n.Edges.Header = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := pq.withPrev; query != nil {
 		if err := pq.loadPrev(ctx, query, nodes, nil,
 			func(n *Plan, e *Plan) { n.Edges.Prev = e }); err != nil {
@@ -476,6 +609,20 @@ func (pq *PlanQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Plan, e
 	if query := pq.withNext; query != nil {
 		if err := pq.loadNext(ctx, query, nodes, nil,
 			func(n *Plan, e *Plan) { n.Edges.Next = e }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range pq.withNamedDays {
+		if err := pq.loadDays(ctx, query, nodes,
+			func(n *Plan) { n.appendNamedDays(name) },
+			func(n *Plan, e *Day) { n.appendNamedDays(name, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range pq.withNamedArbitrarySections {
+		if err := pq.loadArbitrarySections(ctx, query, nodes,
+			func(n *Plan) { n.appendNamedArbitrarySections(name) },
+			func(n *Plan, e *ArbitrarySection) { n.appendNamedArbitrarySections(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -513,6 +660,144 @@ func (pq *PlanQuery) loadAuthor(ctx context.Context, query *UserQuery, nodes []*
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (pq *PlanQuery) loadDays(ctx context.Context, query *DayQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Day)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Plan)
+	nids := make(map[int]map[*Plan]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(plan.DaysTable)
+		s.Join(joinT).On(s.C(day.FieldID), joinT.C(plan.DaysPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(plan.DaysPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(plan.DaysPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := int(values[0].(*sql.NullInt64).Int64)
+			inValue := int(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*Plan]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "days" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (pq *PlanQuery) loadArbitrarySections(ctx context.Context, query *ArbitrarySectionQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *ArbitrarySection)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Plan)
+	nids := make(map[int]map[*Plan]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(plan.ArbitrarySectionsTable)
+		s.Join(joinT).On(s.C(arbitrarysection.FieldID), joinT.C(plan.ArbitrarySectionsPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(plan.ArbitrarySectionsPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(plan.ArbitrarySectionsPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := int(values[0].(*sql.NullInt64).Int64)
+			inValue := int(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*Plan]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "arbitrarySections" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (pq *PlanQuery) loadHeader(ctx context.Context, query *HeaderQuery, nodes []*Plan, init func(*Plan), assign func(*Plan, *Header)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Plan)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.Header(func(s *sql.Selector) {
+		s.Where(sql.InValues(plan.HeaderColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.plan_header
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "plan_header" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "plan_header" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -672,6 +957,34 @@ func (pq *PlanQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// WithNamedDays tells the query-builder to eager-load the nodes that are connected to the "days"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithNamedDays(name string, opts ...func(*DayQuery)) *PlanQuery {
+	query := &DayQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if pq.withNamedDays == nil {
+		pq.withNamedDays = make(map[string]*DayQuery)
+	}
+	pq.withNamedDays[name] = query
+	return pq
+}
+
+// WithNamedArbitrarySections tells the query-builder to eager-load the nodes that are connected to the "arbitrarySections"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (pq *PlanQuery) WithNamedArbitrarySections(name string, opts ...func(*ArbitrarySectionQuery)) *PlanQuery {
+	query := &ArbitrarySectionQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if pq.withNamedArbitrarySections == nil {
+		pq.withNamedArbitrarySections = make(map[string]*ArbitrarySectionQuery)
+	}
+	pq.withNamedArbitrarySections[name] = query
+	return pq
 }
 
 // PlanGroupBy is the group-by builder for Plan entities.

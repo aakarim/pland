@@ -36,6 +36,9 @@ func (Plan) Fields() []ent.Field {
 func (Plan) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("author", User.Type).Ref("plans").Unique(),
+		edge.To("days", Day.Type),
+		edge.To("arbitrarySections", ArbitrarySection.Type),
+		edge.To("header", Header.Type).Unique(),
 		edge.To("next", Plan.Type).Unique().From("prev").Unique(), // O2O Same Type
 	}
 }

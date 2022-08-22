@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/schema"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/aakarim/pland/ent/arbitrarysection"
+	"github.com/aakarim/pland/ent/day"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/user"
 	"github.com/hashicorp/go-multierror"
@@ -47,12 +50,139 @@ type Edge struct {
 	IDs  []int  `json:"ids,omitempty"`  // node ids (where this edge point to).
 }
 
+func (as *ArbitrarySection) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     as.ID,
+		Type:   "ArbitrarySection",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(as.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(as.Token); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "string",
+		Name:  "token",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(as.Txt); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "txt",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Plan",
+		Name: "plan",
+	}
+	err = as.QueryPlan().
+		Select(plan.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (d *Day) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     d.ID,
+		Type:   "Day",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(d.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(d.Date); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "date",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(d.Txt); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "txt",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Plan",
+		Name: "plan",
+	}
+	err = d.QueryPlan().
+		Select(plan.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (h *Header) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     h.ID,
+		Type:   "Header",
+		Fields: make([]*Field, 2),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(h.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(h.Txt); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "string",
+		Name:  "txt",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Plan",
+		Name: "plan",
+	}
+	err = h.QueryPlan().
+		Select(plan.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
 func (pl *Plan) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     pl.ID,
 		Type:   "Plan",
 		Fields: make([]*Field, 4),
-		Edges:  make([]*Edge, 3),
+		Edges:  make([]*Edge, 6),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(pl.CreatedAt); err != nil {
@@ -98,22 +228,52 @@ func (pl *Plan) Node(ctx context.Context) (node *Node, err error) {
 		return nil, err
 	}
 	node.Edges[1] = &Edge{
-		Type: "Plan",
-		Name: "prev",
+		Type: "Day",
+		Name: "days",
 	}
-	err = pl.QueryPrev().
-		Select(plan.FieldID).
+	err = pl.QueryDays().
+		Select(day.FieldID).
 		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}
 	node.Edges[2] = &Edge{
+		Type: "ArbitrarySection",
+		Name: "arbitrarySections",
+	}
+	err = pl.QueryArbitrarySections().
+		Select(arbitrarysection.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[3] = &Edge{
+		Type: "Header",
+		Name: "header",
+	}
+	err = pl.QueryHeader().
+		Select(header.FieldID).
+		Scan(ctx, &node.Edges[3].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[4] = &Edge{
+		Type: "Plan",
+		Name: "prev",
+	}
+	err = pl.QueryPrev().
+		Select(plan.FieldID).
+		Scan(ctx, &node.Edges[4].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[5] = &Edge{
 		Type: "Plan",
 		Name: "next",
 	}
 	err = pl.QueryNext().
 		Select(plan.FieldID).
-		Scan(ctx, &node.Edges[2].IDs)
+		Scan(ctx, &node.Edges[5].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +408,42 @@ func (c *Client) Noder(ctx context.Context, id int, opts ...NodeOption) (_ Noder
 
 func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error) {
 	switch table {
+	case arbitrarysection.Table:
+		query := c.ArbitrarySection.Query().
+			Where(arbitrarysection.ID(id))
+		query, err := query.CollectFields(ctx, "ArbitrarySection")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case day.Table:
+		query := c.Day.Query().
+			Where(day.ID(id))
+		query, err := query.CollectFields(ctx, "Day")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case header.Table:
+		query := c.Header.Query().
+			Where(header.ID(id))
+		query, err := query.CollectFields(ctx, "Header")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case plan.Table:
 		query := c.Plan.Query().
 			Where(plan.ID(id))
@@ -345,6 +541,54 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		idmap[id] = append(idmap[id], &noders[i])
 	}
 	switch table {
+	case arbitrarysection.Table:
+		query := c.ArbitrarySection.Query().
+			Where(arbitrarysection.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "ArbitrarySection")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case day.Table:
+		query := c.Day.Query().
+			Where(day.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Day")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case header.Table:
+		query := c.Header.Query().
+			Where(header.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Header")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
 	case plan.Table:
 		query := c.Plan.Query().
 			Where(plan.IDIn(ids...))

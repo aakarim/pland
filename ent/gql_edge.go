@@ -8,10 +8,58 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
+func (as *ArbitrarySection) Plan(ctx context.Context) ([]*Plan, error) {
+	result, err := as.Edges.PlanOrErr()
+	if IsNotLoaded(err) {
+		result, err = as.QueryPlan().All(ctx)
+	}
+	return result, err
+}
+
+func (d *Day) Plan(ctx context.Context) ([]*Plan, error) {
+	result, err := d.Edges.PlanOrErr()
+	if IsNotLoaded(err) {
+		result, err = d.QueryPlan().All(ctx)
+	}
+	return result, err
+}
+
+func (h *Header) Plan(ctx context.Context) (*Plan, error) {
+	result, err := h.Edges.PlanOrErr()
+	if IsNotLoaded(err) {
+		result, err = h.QueryPlan().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
 func (pl *Plan) Author(ctx context.Context) (*User, error) {
 	result, err := pl.Edges.AuthorOrErr()
 	if IsNotLoaded(err) {
 		result, err = pl.QueryAuthor().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (pl *Plan) Days(ctx context.Context) ([]*Day, error) {
+	result, err := pl.Edges.DaysOrErr()
+	if IsNotLoaded(err) {
+		result, err = pl.QueryDays().All(ctx)
+	}
+	return result, err
+}
+
+func (pl *Plan) ArbitrarySections(ctx context.Context) ([]*ArbitrarySection, error) {
+	result, err := pl.Edges.ArbitrarySectionsOrErr()
+	if IsNotLoaded(err) {
+		result, err = pl.QueryArbitrarySections().All(ctx)
+	}
+	return result, err
+}
+
+func (pl *Plan) Header(ctx context.Context) (*Header, error) {
+	result, err := pl.Edges.HeaderOrErr()
+	if IsNotLoaded(err) {
+		result, err = pl.QueryHeader().Only(ctx)
 	}
 	return result, MaskNotFound(err)
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/user"
 )
@@ -36,15 +37,24 @@ type Plan struct {
 type PlanEdges struct {
 	// Author holds the value of the author edge.
 	Author *User `json:"author,omitempty"`
+	// Days holds the value of the days edge.
+	Days []*Day `json:"days,omitempty"`
+	// ArbitrarySections holds the value of the arbitrarySections edge.
+	ArbitrarySections []*ArbitrarySection `json:"arbitrarySections,omitempty"`
+	// Header holds the value of the header edge.
+	Header *Header `json:"header,omitempty"`
 	// Prev holds the value of the prev edge.
 	Prev *Plan `json:"prev,omitempty"`
 	// Next holds the value of the next edge.
 	Next *Plan `json:"next,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [6]bool
 	// totalCount holds the count of the edges above.
-	totalCount [3]map[string]int
+	totalCount [6]map[string]int
+
+	namedDays              map[string][]*Day
+	namedArbitrarySections map[string][]*ArbitrarySection
 }
 
 // AuthorOrErr returns the Author value or an error if the edge
@@ -60,10 +70,41 @@ func (e PlanEdges) AuthorOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "author"}
 }
 
+// DaysOrErr returns the Days value or an error if the edge
+// was not loaded in eager-loading.
+func (e PlanEdges) DaysOrErr() ([]*Day, error) {
+	if e.loadedTypes[1] {
+		return e.Days, nil
+	}
+	return nil, &NotLoadedError{edge: "days"}
+}
+
+// ArbitrarySectionsOrErr returns the ArbitrarySections value or an error if the edge
+// was not loaded in eager-loading.
+func (e PlanEdges) ArbitrarySectionsOrErr() ([]*ArbitrarySection, error) {
+	if e.loadedTypes[2] {
+		return e.ArbitrarySections, nil
+	}
+	return nil, &NotLoadedError{edge: "arbitrarySections"}
+}
+
+// HeaderOrErr returns the Header value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PlanEdges) HeaderOrErr() (*Header, error) {
+	if e.loadedTypes[3] {
+		if e.Header == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: header.Label}
+		}
+		return e.Header, nil
+	}
+	return nil, &NotLoadedError{edge: "header"}
+}
+
 // PrevOrErr returns the Prev value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PlanEdges) PrevOrErr() (*Plan, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[4] {
 		if e.Prev == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: plan.Label}
@@ -76,7 +117,7 @@ func (e PlanEdges) PrevOrErr() (*Plan, error) {
 // NextOrErr returns the Next value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PlanEdges) NextOrErr() (*Plan, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[5] {
 		if e.Next == nil {
 			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: plan.Label}
@@ -172,6 +213,21 @@ func (pl *Plan) QueryAuthor() *UserQuery {
 	return (&PlanClient{config: pl.config}).QueryAuthor(pl)
 }
 
+// QueryDays queries the "days" edge of the Plan entity.
+func (pl *Plan) QueryDays() *DayQuery {
+	return (&PlanClient{config: pl.config}).QueryDays(pl)
+}
+
+// QueryArbitrarySections queries the "arbitrarySections" edge of the Plan entity.
+func (pl *Plan) QueryArbitrarySections() *ArbitrarySectionQuery {
+	return (&PlanClient{config: pl.config}).QueryArbitrarySections(pl)
+}
+
+// QueryHeader queries the "header" edge of the Plan entity.
+func (pl *Plan) QueryHeader() *HeaderQuery {
+	return (&PlanClient{config: pl.config}).QueryHeader(pl)
+}
+
 // QueryPrev queries the "prev" edge of the Plan entity.
 func (pl *Plan) QueryPrev() *PlanQuery {
 	return (&PlanClient{config: pl.config}).QueryPrev(pl)
@@ -218,6 +274,54 @@ func (pl *Plan) String() string {
 	builder.WriteString(pl.Txt)
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedDays returns the Days named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (pl *Plan) NamedDays(name string) ([]*Day, error) {
+	if pl.Edges.namedDays == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := pl.Edges.namedDays[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (pl *Plan) appendNamedDays(name string, edges ...*Day) {
+	if pl.Edges.namedDays == nil {
+		pl.Edges.namedDays = make(map[string][]*Day)
+	}
+	if len(edges) == 0 {
+		pl.Edges.namedDays[name] = []*Day{}
+	} else {
+		pl.Edges.namedDays[name] = append(pl.Edges.namedDays[name], edges...)
+	}
+}
+
+// NamedArbitrarySections returns the ArbitrarySections named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (pl *Plan) NamedArbitrarySections(name string) ([]*ArbitrarySection, error) {
+	if pl.Edges.namedArbitrarySections == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := pl.Edges.namedArbitrarySections[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (pl *Plan) appendNamedArbitrarySections(name string, edges ...*ArbitrarySection) {
+	if pl.Edges.namedArbitrarySections == nil {
+		pl.Edges.namedArbitrarySections = make(map[string][]*ArbitrarySection)
+	}
+	if len(edges) == 0 {
+		pl.Edges.namedArbitrarySections[name] = []*ArbitrarySection{}
+	} else {
+		pl.Edges.namedArbitrarySections[name] = append(pl.Edges.namedArbitrarySections[name], edges...)
+	}
 }
 
 // Plans is a parsable slice of Plan.

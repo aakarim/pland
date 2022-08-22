@@ -413,6 +413,90 @@ func HasAuthorWith(preds ...predicate.User) predicate.Plan {
 	})
 }
 
+// HasDays applies the HasEdge predicate on the "days" edge.
+func HasDays() predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(DaysTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, DaysTable, DaysPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDaysWith applies the HasEdge predicate on the "days" edge with a given conditions (other predicates).
+func HasDaysWith(preds ...predicate.Day) predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(DaysInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, DaysTable, DaysPrimaryKey...),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasArbitrarySections applies the HasEdge predicate on the "arbitrarySections" edge.
+func HasArbitrarySections() predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ArbitrarySectionsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, ArbitrarySectionsTable, ArbitrarySectionsPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasArbitrarySectionsWith applies the HasEdge predicate on the "arbitrarySections" edge with a given conditions (other predicates).
+func HasArbitrarySectionsWith(preds ...predicate.ArbitrarySection) predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ArbitrarySectionsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, ArbitrarySectionsTable, ArbitrarySectionsPrimaryKey...),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasHeader applies the HasEdge predicate on the "header" edge.
+func HasHeader() predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(HeaderTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, HeaderTable, HeaderColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasHeaderWith applies the HasEdge predicate on the "header" edge with a given conditions (other predicates).
+func HasHeaderWith(preds ...predicate.Header) predicate.Plan {
+	return predicate.Plan(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(HeaderInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, HeaderTable, HeaderColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasPrev applies the HasEdge predicate on the "prev" edge.
 func HasPrev() predicate.Plan {
 	return predicate.Plan(func(s *sql.Selector) {

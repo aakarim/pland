@@ -5,6 +5,9 @@ package ent
 import (
 	"time"
 
+	"github.com/aakarim/pland/ent/arbitrarysection"
+	"github.com/aakarim/pland/ent/day"
+	"github.com/aakarim/pland/ent/header"
 	"github.com/aakarim/pland/ent/plan"
 	"github.com/aakarim/pland/ent/schema"
 	"github.com/aakarim/pland/ent/user"
@@ -14,6 +17,24 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	arbitrarysectionFields := schema.ArbitrarySection{}.Fields()
+	_ = arbitrarysectionFields
+	// arbitrarysectionDescCreatedAt is the schema descriptor for created_at field.
+	arbitrarysectionDescCreatedAt := arbitrarysectionFields[0].Descriptor()
+	// arbitrarysection.DefaultCreatedAt holds the default value on creation for the created_at field.
+	arbitrarysection.DefaultCreatedAt = arbitrarysectionDescCreatedAt.Default.(func() time.Time)
+	dayFields := schema.Day{}.Fields()
+	_ = dayFields
+	// dayDescCreatedAt is the schema descriptor for created_at field.
+	dayDescCreatedAt := dayFields[0].Descriptor()
+	// day.DefaultCreatedAt holds the default value on creation for the created_at field.
+	day.DefaultCreatedAt = dayDescCreatedAt.Default.(func() time.Time)
+	headerFields := schema.Header{}.Fields()
+	_ = headerFields
+	// headerDescCreatedAt is the schema descriptor for created_at field.
+	headerDescCreatedAt := headerFields[0].Descriptor()
+	// header.DefaultCreatedAt holds the default value on creation for the created_at field.
+	header.DefaultCreatedAt = headerDescCreatedAt.Default.(func() time.Time)
 	planFields := schema.Plan{}.Fields()
 	_ = planFields
 	// planDescHasConflict is the schema descriptor for has_conflict field.

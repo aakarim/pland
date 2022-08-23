@@ -63,7 +63,7 @@ func (p *PlanService) Fresh() error {
 	beginningOfDay := time.Now().Truncate(24 * time.Hour)
 
 	newEntry := planEntity.Day{
-		Contents: `- [x] run ` + "`plan fresh`" + "\n" + `- [ ] update todos`,
+		Contents: `- [x] run ` + "`plan fresh`" + "\n" + `- [ ] share what you're working on`,
 		Date:     beginningOfDay,
 	}
 	// get most recent date

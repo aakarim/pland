@@ -13,10 +13,11 @@ func Install() error {
 	if err := sh.Run("go", "install", "./cli/plan.go"); err != nil {
 		return err
 	}
+	fmt.Println(common.Styles.Keyword.Render("installed `plan`."))
 	if err := sh.Run("go", "install", "-ldflags", "-s -w", "./pland/pland.go"); err != nil {
 		return err
 	}
-	fmt.Println(common.Styles.Keyword.Render("installed."))
+	fmt.Println(common.Styles.Keyword.Render("installed `pland`."))
 	return nil
 }
 

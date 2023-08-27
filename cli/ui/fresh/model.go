@@ -19,13 +19,15 @@ type model struct {
 }
 type errMsg error
 type success struct{}
+type openedEditor struct{}
+type didNotOpenEditor struct{}
 
 const (
 	statusSuccess = 1 + iota
 )
 
 func InitialModel(planService *plan.PlanService, cfg *config.Config) model {
-	return model{}
+	return model{planService: planService, cfg: cfg}
 }
 
 func (m model) Init() tea.Cmd {
@@ -41,7 +43,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case success:
 		m.status = statusSuccess
+		return m, m.openEditor
+	case didNotOpenEditor:
 		m.Quitting = true
+		return m, tea.Quit
+	case openedEditor:
+		// m.Quitting = true // don't do this because we don't want the newline
 		return m, tea.Quit
 	case errMsg:
 		m.Err = msg

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"text/template"
+
 	"entgo.io/contrib/entgql"
 	gossh "golang.org/x/crypto/ssh"
 
@@ -19,12 +21,16 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gliderlabs/ssh"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 	_ "github.com/xiaoqidun/entps"
 	"goji.io"
 	"goji.io/pat"
 
 	"github.com/aakarim/pland/ent"
 	"github.com/aakarim/pland/ent/migrate"
+	"github.com/aakarim/pland/ent/user"
 	"github.com/aakarim/pland/graph"
 	"github.com/aakarim/pland/graph/generated"
 	"github.com/charmbracelet/charm/server"
@@ -115,8 +121,10 @@ func makeGQLServer(client *ent.Client, cfg *server.Config) *http.Server {
 	gqlMux.Use(jwtMiddleware)
 	gqlMux.Use(authMiddleware)
 
-	gqlMux.Handle(pat.New("/"), playground.Handler("GraphQL playground", "/query"))
+	gqlMux.Handle(pat.New("/dev/playground"), playground.Handler("GraphQL playground", "/query"))
 	gqlMux.Handle(pat.New("/query"), srv)
+	// all the user handles
+	gqlMux.Handle(pat.New("/*"), &UserHandler{entClient: client})
 
 	httpServer := &http.Server{
 		Addr:    ":" + port,
@@ -125,4 +133,44 @@ func makeGQLServer(client *ent.Client, cfg *server.Config) *http.Server {
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Println()
 	return httpServer
+}
+
+type UserHandler struct {
+	entClient *ent.Client
+}
+
+func (u *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Path[1:]
+
+	user, err := u.entClient.User.Query().Where(user.NameEQ(username)).Only(r.Context())
+	if err != nil {
+		log.Println(err)
+		http.Error(w, fmt.Sprintf("user %s not found", username), http.StatusNotFound)
+		return
+	}
+
+	plan, err := user.QueryPlans().First(r.Context())
+	if err != nil {
+		log.Println(err)
+		fmt.Fprintf(w, "no plans yet!")
+		return
+	}
+
+	t, err := template.New("user").Parse(userTmpl)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse([]byte(plan.Txt))
+
+	// create HTML renderer with extensions
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+	html := markdown.Render(doc, renderer)
+	t.Execute(w, string(html))
 }
